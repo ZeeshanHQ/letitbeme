@@ -6,6 +6,7 @@ import { LandingPage } from './components/landing/LandingPage';
 import { StageCanvas } from './components/stage/StageCanvas';
 import { PresenterStudio } from './components/presenter/PresenterStudio';
 import { ReferralDashboard } from './components/dashboard/ReferralDashboard';
+import { TeamCallsDashboard } from './components/dashboard/TeamCallsDashboard';
 import { InactivityTimeoutModal } from './components/common/InactivityTimeoutModal';
 
 const AppContent: React.FC = () => {
@@ -26,7 +27,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') as AppView;
-    if (viewParam && ['landing', 'stage', 'presenter', 'referral'].includes(viewParam)) {
+    if (viewParam && ['landing', 'stage', 'presenter', 'referral', 'team_calls'].includes(viewParam)) {
       setCurrentView(viewParam);
       if (viewParam === 'presenter') setIsPresenterRole(true);
     }
@@ -56,6 +57,10 @@ const AppContent: React.FC = () => {
         )}
 
         {currentView === 'referral' && <ReferralDashboard />}
+
+        {currentView === 'team_calls' && (
+          <TeamCallsDashboard onJoinMeeting={() => setCurrentView('stage')} />
+        )}
       </main>
 
       {/* Inactivity 5-Min Timeout & 60s Auto-Close Modal */}
