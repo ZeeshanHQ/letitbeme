@@ -16,6 +16,7 @@ import {
   Radio,
   PhoneOff,
   PictureInPicture2,
+  Crown,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -364,7 +365,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           </div>
         </div>
 
-        {/* Real Host Nameplate */}
+        {/* Real Host Nameplate + Pro Badge */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 backdrop-blur-md border border-white/15 text-white">
           <div
             className={`h-2 w-2 rounded-full transition-all ${
@@ -372,6 +373,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             }`}
           />
           <span className="text-xs font-bold text-white">{user?.fullName || 'Host'}</span>
+          {user?.isPro && (
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 border border-amber-400/40 rounded-full text-[10px] font-mono font-bold text-amber-300">
+              <Crown className="h-2.5 w-2.5 fill-amber-300 text-amber-300" />
+              <span>PRO</span>
+            </span>
+          )}
           <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
             • @{user?.customSlug || 'live'}
           </span>

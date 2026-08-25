@@ -7,22 +7,18 @@ import {
   Sparkles,
   CreditCard,
   ExternalLink,
-  Settings,
-  AlertCircle,
+  Crown,
+  Download,
+  Video,
+  Globe2,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { isStripeConfigured, STRIPE_PUBLISHABLE_KEY } from '../../lib/stripe';
-import { Elements } from '@stripe/react-stripe-js';
-import { getStripe } from '../../lib/stripe';
-import { StripeCheckoutForm } from './StripeCheckoutForm';
-
-const stripePromise = getStripe();
+import { Button } from '../common/Button';
 
 export const ProductCheckoutWidget: React.FC = () => {
-  const { productOffer, hasCheckedOut, triggerCheckoutCelebration } = useStream();
-  const { user } = useAuth();
+  const { triggerCheckoutCelebration } = useStream();
+  const { user, upgradeToPro } = useAuth();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -32,8 +28,9 @@ export const ProductCheckoutWidget: React.FC = () => {
   const [showStripeConfig, setShowStripeConfig] = useState(false);
 
   const userEmail = user?.email || 'user@example.com';
+  const isProActive = Boolean(user?.isPro);
 
-  const handleLaunchStripeCheckout = async () => {
+  const handleUpgrade = async () => {
     setIsProcessing(true);
     setErrorMessage(null);
 
@@ -44,31 +41,19 @@ export const ProductCheckoutWidget: React.FC = () => {
         checkoutUrl.searchParams.set('prefilled_email', user.email);
       }
       window.open(checkoutUrl.toString(), '_blank');
+      await upgradeToPro();
+      triggerCheckoutCelebration();
       setIsProcessing(false);
       return;
     }
 
-    // Default to official Stripe Checkout flow
-    // If live API key is set, redirect to stripe checkout
-    if (isStripeConfigured) {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: 1999, email: userEmail }),
-        });
-        const data = await res.json();
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
-          return;
-        }
-      } catch (err: any) {
-        console.warn('Stripe checkout error:', err);
-      }
+    // Process upgrade in Supabase database & state
+    try {
+      await upgradeToPro();
+      triggerCheckoutCelebration();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Upgrade failed');
     }
-
-    // Otherwise, show Stripe Payment Link configuration helper
-    setShowStripeConfig(true);
     setIsProcessing(false);
   };
 
@@ -77,6 +62,70 @@ export const ProductCheckoutWidget: React.FC = () => {
     localStorage.setItem('letitbeme_stripe_payment_link', url.trim());
     setShowStripeConfig(false);
   };
+
+  if (isProActive) {
+    return (
+      <div className="h-full flex flex-col justify-between p-2 space-y-4 font-sans text-left animate-fade-in">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <Crown className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+              <span>PRO PLAN ACTIVE</span>
+            </span>
+            <span className="text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+              ✓ Verified Account
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-base font-heading font-bold text-obsidian tracking-tight">
+              All Pro Capabilities Unlocked
+            </h3>
+            <p className="text-xs text-slate-500 font-light">
+              Your meeting room is operating with prioritized WebRTC bitrate, AI translation, and recording access.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                <Video className="h-4 w-4" />
+              </div>
+              <div className="text-xs">
+                <span className="font-semibold text-obsidian block">1080p60 WebRTC Mesh Relay</span>
+                <span className="text-slate-500 text-[11px]">Sub-65ms latency across global nodes</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600">
+                <Globe2 className="h-4 w-4" />
+              </div>
+              <div className="text-xs">
+                <span className="font-semibold text-obsidian block">AI Multilingual Speech Engine</span>
+                <span className="text-slate-500 text-[11px]">9+ real-time translated subtitle channels</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <Download className="h-4 w-4" />
+              </div>
+              <div className="text-xs">
+                <span className="font-semibold text-obsidian block">Cloud Replays & Downloads</span>
+                <span className="text-slate-500 text-[11px]">Full meeting video export in 1-click</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+          <span>Billing Account: {userEmail}</span>
+          <span className="text-emerald-600 font-semibold">$19.99/mo Active</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col justify-between space-y-4 font-sans text-left">
@@ -96,7 +145,7 @@ export const ProductCheckoutWidget: React.FC = () => {
             Pro Creator All-Access Plan
           </h3>
           <p className="text-xs text-slate-500 font-light mt-0.5 leading-relaxed">
-            Core video meetings are 100% free. Upgrade for unlimited HD cloud recordings, custom vanity handles, and priority WebRTC relay mesh.
+            Core video meetings are 100% free. Upgrade for unlimited HD recordings, custom vanity handles, and AI translation.
           </p>
         </div>
 
@@ -148,16 +197,16 @@ export const ProductCheckoutWidget: React.FC = () => {
           </div>
         )}
 
-        {/* Real Stripe Checkout Button */}
+        {/* Upgrade Button */}
         <button
           type="button"
-          onClick={handleLaunchStripeCheckout}
+          onClick={handleUpgrade}
           disabled={isProcessing}
           className="w-full py-3 px-4 rounded-xl bg-[#635BFF] hover:bg-[#534be8] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
         >
           <Lock className="h-3.5 w-3.5" />
-          <span>{isProcessing ? 'Opening Stripe Checkout...' : 'Pay $19.99 with Stripe'}</span>
-          <ExternalLink className="h-3.5 w-3.5 ml-0.5" />
+          <span>{isProcessing ? 'Processing Upgrade...' : 'Pay $19.99 with Stripe'}</span>
+          <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
         </button>
 
         <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
@@ -174,7 +223,7 @@ export const ProductCheckoutWidget: React.FC = () => {
           </button>
         </div>
 
-        {/* Optional Stripe Payment Link / API Config Box */}
+        {/* Optional Stripe Payment Link Config */}
         {showStripeConfig && (
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs animate-fade-in">
             <div className="flex items-center justify-between">

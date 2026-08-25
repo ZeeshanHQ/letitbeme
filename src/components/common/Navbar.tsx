@@ -15,8 +15,7 @@ import {
   Globe,
   MonitorPlay,
   Settings,
-  PhoneCall,
-  Shield,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStream } from '../../context/StreamContext';
@@ -24,7 +23,7 @@ import { Button } from './Button';
 import { AuthModal } from '../auth/AuthModal';
 import { SettingsModal } from './SettingsModal';
 
-export type AppView = 'landing' | 'stage' | 'presenter' | 'referral' | 'team_calls';
+export type AppView = 'landing' | 'stage' | 'presenter' | 'referral';
 
 interface NavbarProps {
   currentView: AppView;
@@ -96,18 +95,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
               </button>
 
               <button
-                onClick={() => handleViewChange('team_calls')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
-                  currentView === 'team_calls'
-                    ? 'bg-white text-obsidian shadow-sm'
-                    : 'text-slate-500 hover:text-obsidian'
-                }`}
-              >
-                <PhoneCall className="h-3.5 w-3.5 text-solar-500" />
-                <span>Team Calls</span>
-              </button>
-
-              <button
                 onClick={() => handleViewChange('stage')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                   currentView === 'stage'
@@ -167,6 +154,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                   <span className="font-semibold text-obsidian hidden sm:inline">
                     {user.fullName}
                   </span>
+                  {user.isPro && (
+                    <span className="flex items-center gap-0.5 px-2 py-0.5 bg-amber-500/15 border border-amber-400/40 rounded-full text-[10px] font-mono font-bold text-amber-600">
+                      <Crown className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                      <span>PRO</span>
+                    </span>
+                  )}
                   <span className="text-[10px] font-mono text-solar-600 bg-solar-50 px-2 py-0.5 rounded-full font-bold border border-solar-200">
                     @{user.customSlug}
                   </span>
