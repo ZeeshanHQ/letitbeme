@@ -63,15 +63,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
       <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-2xl transition-all font-sans">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           
-          {/* Solar Brand Logo */}
+          {/* 3D Brand Logo */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleViewChange('landing')}
               className="flex items-center gap-2.5 group focus:outline-none cursor-pointer"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm group-hover:scale-105 transition-all">
-                <Zap className="h-4 w-4 fill-white" />
-              </div>
+              <img
+                src="/logo3d.png"
+                alt="LetItBeMe 3D Logo"
+                className="h-8 w-8 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-all"
+              />
               <span className="text-base font-heading font-bold tracking-tight text-obsidian">
                 LetItBe<span className="text-solar-500 font-semibold">Me</span>
               </span>

@@ -1,10 +1,10 @@
 import React from 'react';
 import { HeroSection } from './HeroSection';
+import { CoreFeaturesSection } from './CoreFeaturesSection';
 import { ComparisonSection } from './ComparisonSection';
 import { FeatureGrid } from './FeatureGrid';
 import { RoiCalculator } from './RoiCalculator';
 import { CtaSection } from './CtaSection';
-import { Zap } from 'lucide-react';
 
 interface LandingPageProps {
   onEnterStage: () => void;
@@ -16,45 +16,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onEnterPresenter,
 }) => {
   return (
-    <div className="min-h-screen bg-[#FAF9F6] font-sans">
+    <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Hero Section with Embedded Interactive Test-Drive */}
       <HeroSection
         onEnterStage={onEnterStage}
         onEnterPresenter={onEnterPresenter}
       />
 
+      {/* Core Features Marketing Section with Gradient Cards */}
+      <CoreFeaturesSection />
+
       {/* Core Architecture Feature Grid */}
       <FeatureGrid />
 
-      {/* Comparison Matrix & Solar Keynote Stage Visual */}
+      {/* Comparison Matrix & Stage Visual */}
       <ComparisonSection />
 
-      {/* Community Free Model & Donation Support */}
+      {/* Community Free Model & ROI Calculator */}
       <RoiCalculator onStartDemo={onEnterStage} />
 
       {/* Bottom Conversion CTA */}
       <CtaSection onEnterStage={onEnterStage} />
 
-      {/* Minimal Solar Luxury Footer */}
-      <footer className="border-t border-solar-100/70 bg-white py-16 text-slate-500 font-sans">
+      {/* Minimal Footer with 3D Logo */}
+      <footer className="border-t border-slate-100 bg-white py-16 text-slate-500 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-xs text-left">
             {/* Col 1: Brand */}
             <div className="col-span-2 space-y-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-tr from-solar-500 to-solar-600 text-white shadow-solar-sm">
-                  <Zap className="h-3.5 w-3.5 fill-white" />
-                </div>
-                <span className="text-sm font-heading font-semibold tracking-tight text-obsidian">
+                <img
+                  src="/logo3d.png"
+                  alt="LetItBeMe 3D Logo"
+                  className="h-8 w-8 rounded-xl object-cover shadow-sm"
+                />
+                <span className="text-base font-heading font-bold tracking-tight text-obsidian">
                   LetItBe<span className="text-solar-500 font-medium">Me</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 max-w-sm font-light leading-relaxed">
                 The next-generation interactive live video infrastructure. Embed checkouts, apps, and real-time AI speech translation without redirect churn.
               </p>
-              <div className="flex items-center gap-2 text-[11px] font-mono text-solar-600 pt-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-solar-500 animate-pulse" />
+              <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-600 pt-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>WebRTC Global Mesh: All Systems Operational</span>
               </div>
             </div>
