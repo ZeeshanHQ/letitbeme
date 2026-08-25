@@ -1,25 +1,16 @@
 import React, { useState } from 'react';
 import {
-  Video,
   Radio,
-  Tv,
-  Layers,
-  Sparkles,
-  Zap,
   TrendingUp,
   User,
   LogOut,
-  Sliders,
-  ExternalLink,
-  Lock,
-  Globe,
-  MonitorPlay,
   Settings,
   Crown,
+  MonitorPlay,
+  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStream } from '../../context/StreamContext';
-import { Button } from './Button';
 import { AuthModal } from '../auth/AuthModal';
 import { SettingsModal } from './SettingsModal';
 
@@ -32,7 +23,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
   const { user, signOut } = useAuth();
-  const { isLive, setIsPresenterRole } = useStream();
+  const { setIsPresenterRole } = useStream();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -60,12 +51,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-2xl transition-all font-sans">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          
-          {/* 3D Brand Logo */}
+      {/* Sticky Top-Centered Strong Liquid Glass Navbar */}
+      <div className="sticky top-[20px] sm:top-[30px] z-50 w-full flex justify-center px-4 pointer-events-none">
+        <header
+          className="pointer-events-auto w-full max-w-[1200px] flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 transition-all duration-300 font-sans"
+          style={{
+            backdropFilter: 'blur(50px)',
+            WebkitBackdropFilter: 'blur(50px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.75)',
+            borderRadius: '16px',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0px 10px 30px rgba(0, 0, 0, 0.06)',
+          }}
+        >
+          {/* Logo: Fustat Bold + 3D Logo */}
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => handleViewChange('landing')}
               className="flex items-center gap-2.5 group focus:outline-none cursor-pointer"
             >
@@ -74,17 +76,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                 alt="LetItBeMe 3D Logo"
                 className="h-8 w-8 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-all"
               />
-              <span className="text-base font-heading font-bold tracking-tight text-obsidian">
-                LetItBe<span className="text-solar-500 font-semibold">Me</span>
+              <span className="text-lg font-bold tracking-tight text-[#0f172a] font-['Fustat',sans-serif]">
+                LetItBe<span className="text-[#0084FF]">Me</span>
               </span>
             </button>
           </div>
 
-          {/* Center Navigation */}
+          {/* Center Navigation Links */}
           {user ? (
-            /* Logged-In App Switcher */
-            <nav className="hidden md:flex items-center p-1 bg-slate-100/90 rounded-full border border-slate-200/80 shadow-inner text-xs font-semibold">
+            <nav className="hidden md:flex items-center p-1 bg-slate-100/80 rounded-full border border-slate-200/80 text-xs font-semibold">
               <button
+                type="button"
                 onClick={() => handleViewChange('presenter')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                   currentView === 'presenter'
@@ -92,11 +94,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                     : 'text-slate-500 hover:text-obsidian'
                 }`}
               >
-                <Radio className="h-3.5 w-3.5 text-solar-500" />
+                <Radio className="h-3.5 w-3.5 text-[#0084FF]" />
                 <span>Meeting Room</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => handleViewChange('stage')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                   currentView === 'stage'
@@ -104,11 +107,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                     : 'text-slate-500 hover:text-obsidian'
                 }`}
               >
-                <MonitorPlay className="h-3.5 w-3.5 text-solar-500" />
+                <MonitorPlay className="h-3.5 w-3.5 text-[#0084FF]" />
                 <span>Audience View</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => handleViewChange('referral')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                   currentView === 'referral'
@@ -116,53 +120,63 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                     : 'text-slate-500 hover:text-obsidian'
                 }`}
               >
-                <TrendingUp className="h-3.5 w-3.5 text-solar-500" />
+                <TrendingUp className="h-3.5 w-3.5 text-[#0084FF]" />
                 <span>Affiliates</span>
               </button>
             </nav>
           ) : (
-            /* Public Marketing Navigation */
-            <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-600 font-sans">
+            <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[#475569] font-['Inter',sans-serif]">
               <button
-                onClick={() => scrollToSection('stage-preview-section')}
-                className="hover:text-obsidian transition-colors cursor-pointer"
+                type="button"
+                onClick={() => handleViewChange('landing')}
+                className="hover:text-[#0f172a] transition-colors cursor-pointer"
               >
-                Interactive Features
+                Home
               </button>
               <button
+                type="button"
                 onClick={() => scrollToSection('feature-grid-section')}
-                className="hover:text-obsidian transition-colors cursor-pointer"
+                className="hover:text-[#0f172a] transition-colors cursor-pointer"
               >
-                Capabilities
+                Features
               </button>
               <button
-                onClick={() => scrollToSection('free-community-section')}
-                className="hover:text-obsidian transition-colors cursor-pointer"
+                type="button"
+                onClick={() => scrollToSection('comparison-section')}
+                className="hover:text-[#0f172a] transition-colors cursor-pointer"
               >
-                Why $0 Free?
+                Company
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('roi-section')}
+                className="hover:text-[#0f172a] transition-colors cursor-pointer"
+              >
+                Pricing
               </button>
             </nav>
           )}
 
-          {/* Right Actions: User Profile or Sign In CTA */}
+          {/* Right Actions: User Profile or Liquid Glass CTA Button */}
           <div className="flex items-center gap-2.5">
             {user ? (
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setIsSettingsOpen(true)}
                   className="flex items-center gap-2 p-1 pl-2.5 bg-slate-100 hover:bg-slate-200/80 rounded-full border border-slate-200 transition-all text-xs cursor-pointer"
                   title="Open Settings"
                 >
-                  <span className="font-semibold text-obsidian hidden sm:inline">
+                  <span className="font-semibold text-obsidian hidden sm:inline font-sans">
                     {user.fullName}
                   </span>
                   {user.isPro && (
-                    <span className="flex items-center gap-0.5 px-2 py-0.5 bg-amber-500/15 border border-amber-400/40 rounded-full text-[10px] font-mono font-bold text-amber-600">
-                      <Crown className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                    <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
+                      <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
                       <span>PRO</span>
                     </span>
                   )}
-                  <span className="text-[10px] font-mono text-solar-600 bg-solar-50 px-2 py-0.5 rounded-full font-bold border border-solar-200">
+                  <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
                     @{user.customSlug}
                   </span>
                   <img
@@ -191,30 +205,37 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                 </button>
               </div>
             ) : (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="rounded-full font-semibold text-xs border-slate-200"
-                  leftIcon={<User className="h-3.5 w-3.5 text-solar-500" />}
+                  className="hidden sm:inline-flex px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-obsidian cursor-pointer transition-colors font-sans"
                 >
                   Sign In
-                </Button>
+                </button>
 
-                <Button
-                  variant="primary"
-                  size="sm"
+                {/* Glassy "SignUp" button with arrow icon */}
+                <button
+                  type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="rounded-full font-semibold text-xs"
+                  className="group relative inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+                  style={{
+                    backgroundColor: 'rgba(0, 132, 255, 0.9)',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)',
+                    borderRadius: '12px',
+                    boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 132, 255, 0.3)',
+                  }}
                 >
-                  Get Started Free
-                </Button>
-              </>
+                  <span>Sign Up</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </button>
+              </div>
             )}
           </div>
-        </div>
-      </header>
+
+        </header>
+      </div>
 
       {/* Auth Modal */}
       <AuthModal

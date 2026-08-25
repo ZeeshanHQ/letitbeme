@@ -13,14 +13,14 @@ export const ComparisonSection: React.FC = () => {
     {
       feature: 'In-Stream 1-Click Stripe & Apple Pay Checkout',
       letitbeme: true,
-      letitbemeNote: 'Tokenized in-stream with instant confetti confirmation',
+      letitbemeNote: 'Tokenized in-stream with instant confirmation',
       legacy: false,
       legacyNote: 'Redirects off-video, losing audio context',
     },
     {
       feature: 'Design System & Aesthetic',
       letitbeme: true,
-      letitbemeNote: 'Solar Luxury Light Mode (Linear / Apple / Stripe)',
+      letitbemeNote: 'Liquid Glass Luxury (Apple / Stripe / Linear)',
       legacy: false,
       legacyNote: 'Clunky 2018-era dark marketer software',
     },
@@ -41,94 +41,72 @@ export const ComparisonSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 bg-[#FAF9F6] space-y-16 font-sans text-left">
+    <section id="comparison-section" className="py-24 bg-white space-y-16 font-sans text-left border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
-        {/* Horizontal Long Solar Keynote Banner with Smooth Rounded Edges */}
-        <div className="relative rounded-3xl sm:rounded-[36px] overflow-hidden shadow-2xl bg-obsidian border border-solar-900/30 min-h-[340px] sm:min-h-[400px] flex items-center">
-          {/* Vibrant high-res solar stage image with golden ribbons */}
+        {/* Horizontal Keynote Banner with Smooth Rounded Edges */}
+        <div className="relative rounded-3xl sm:rounded-[36px] overflow-hidden shadow-2xl bg-[#0f172a] border border-slate-800 min-h-[340px] sm:min-h-[400px] flex items-center">
           <img
             src="/solar_stage_keynote.jpg"
             alt="Keynote Live Stage"
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-85"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-70"
           />
-          {/* Subtle horizontal gradient to ensure text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-obsidian/95 via-obsidian/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0f172a]/95 via-[#0f172a]/70 to-transparent" />
 
           <div className="relative z-10 p-8 sm:p-12 lg:p-16 max-w-xl space-y-4">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-semibold tracking-tight text-white leading-tight">
-              Building the infrastructure for interactive video commerce
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold tracking-tight text-white leading-tight">
+              Building the infrastructure for interactive video
             </h3>
-            <p className="text-sm sm:text-base text-slate-200 font-light leading-relaxed">
-              Engineered to replace fragmented webinar software with a unified, sub-85ms interactive pipeline.
+            <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
+              Eliminate external link drop-off. LetItBeMe embeds live forms, sandboxes, and checkouts directly inside the broadcast.
             </p>
-
-            <div className="pt-3">
-              <button
-                type="button"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="px-6 py-3 rounded-full bg-white hover:bg-solar-50 text-obsidian font-medium text-xs shadow-md transition-all flex items-center gap-2"
-              >
-                <span>Watch live demo</span>
-                <ArrowRight className="h-3.5 w-3.5 text-solar-500" />
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-2">
-          <h2 className="text-3xl sm:text-4xl font-heading font-semibold text-obsidian tracking-tight">
-            Why high-growth teams are replacing legacy tools with LetItBeMe
-          </h2>
-          <p className="text-sm sm:text-base text-slate-500 font-light">
-            Compare the next-generation interactive stream architecture against legacy webinar software.
-          </p>
-        </div>
-
-        {/* Comparison Table */}
-        <div className="bg-white rounded-3xl border border-solar-100/90 overflow-hidden shadow-stripe">
-          <div className="grid grid-cols-12 bg-solar-50/50 border-b border-solar-100 p-4 sm:p-6 text-left font-semibold text-xs sm:text-sm">
-            <div className="col-span-6 sm:col-span-5 text-slate-500 uppercase tracking-wider font-mono text-[11px]">
-              Capability
-            </div>
-            <div className="col-span-3 sm:col-span-4 text-solar-600 font-semibold">
-              LetItBeMe 2.4
-            </div>
-            <div className="col-span-3 sm:col-span-3 text-slate-400">
-              Legacy Tools (PXch, Zoom)
-            </div>
+        {/* Comparison Matrix Table */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#0084FF]">
+              Architecture Benchmark
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
+              Why leading software teams choose LetItBeMe
+            </h3>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {comparisonRows.map((row, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-12 p-4 sm:p-6 items-center hover:bg-solar-50/30 transition-colors text-xs sm:text-sm"
-              >
-                <div className="col-span-6 sm:col-span-5 pr-4 font-medium text-obsidian">
-                  {row.feature}
-                </div>
-
-                <div className="col-span-3 sm:col-span-4 pr-3">
-                  <div className="flex items-center gap-2 text-solar-600 font-medium">
-                    <div className="h-5 w-5 rounded-full bg-solar-50 border border-solar-200 flex items-center justify-center shrink-0">
-                      <Check className="h-3.5 w-3.5 text-solar-600" />
-                    </div>
-                    <span className="hidden sm:inline text-xs text-slate-700">{row.letitbemeNote}</span>
-                  </div>
-                </div>
-
-                <div className="col-span-3 sm:col-span-3">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <div className="h-5 w-5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                      <X className="h-3.5 w-3.5 text-slate-400" />
-                    </div>
-                    <span className="hidden sm:inline text-xs text-slate-400">{row.legacyNote}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="bg-slate-50/70 rounded-3xl border border-slate-200/90 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-white/80">
+                    <th className="py-4 px-6 font-semibold text-[#0f172a]">Core Capability</th>
+                    <th className="py-4 px-6 font-bold text-[#0084FF] bg-blue-50/50">LetItBeMe</th>
+                    <th className="py-4 px-6 font-semibold text-slate-400">Legacy Webinar Tools</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200/60 font-sans">
+                  {comparisonRows.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-white/60 transition-colors">
+                      <td className="py-4 px-6 font-medium text-[#0f172a]">
+                        {row.feature}
+                      </td>
+                      <td className="py-4 px-6 bg-blue-50/20">
+                        <div className="flex items-center gap-2 text-[#0084FF] font-semibold">
+                          <Check className="h-4 w-4 shrink-0 stroke-[2.5]" />
+                          <span>{row.letitbemeNote}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <X className="h-4 w-4 shrink-0 text-slate-300" />
+                          <span>{row.legacyNote}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 

@@ -1,181 +1,142 @@
-import React, { useState } from 'react';
-import {
-  ArrowRight,
-  Radio,
-  Sparkles,
-  Zap,
-  ChevronDown,
-} from 'lucide-react';
-import { Button } from '../common/Button';
-import { VideoPlayer } from '../stage/VideoPlayer';
-import { InteractiveLayer } from '../interactive/InteractiveLayer';
+import React from 'react';
+import { Star, ArrowRight, ArrowUpRight } from 'lucide-react';
 
 interface HeroSectionProps {
   onEnterStage: () => void;
   onEnterPresenter: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onEnterStage, onEnterPresenter }) => {
-  const [promptText, setPromptText] = useState('Launch interactive webinar with in-stream sandbox & live AI translation');
-
-  const scrollToPreview = () => {
-    const previewEl = document.getElementById('stage-preview-section');
-    if (previewEl) {
-      previewEl.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  onEnterStage,
+  onEnterPresenter,
+}) => {
   return (
-    <section className="relative w-full bg-white font-heading overflow-hidden">
-      
-      {/* 1. PRIMARY HERO VIEWPORT (Full Screen Height, Perfectly Centered) */}
-      <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center py-12 relative">
-        <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="relative w-full overflow-hidden bg-white selection:bg-[#319AFF]/20 font-sans -webkit-font-smoothing-antialiased">
+      {/* Top-Left Layered Gradient Glow Ellipses */}
+      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#60B1FF]/30 blur-[120px] pointer-events-none -z-0" />
+      <div className="absolute top-[80px] left-[120px] w-[380px] h-[380px] rounded-full bg-[#319AFF]/25 blur-[100px] pointer-events-none -z-0" />
+
+      {/* Main Container: 1600px Max-Width */}
+      <div className="relative z-10 mx-auto max-w-[1600px] px-6 sm:px-10 lg:px-16 pt-12 pb-24 sm:pt-20 sm:pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
-          {/* Top Pill */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-50 border border-slate-200 shadow-sm text-xs font-semibold text-obsidian">
-              <span className="flex h-2 w-2 rounded-full bg-solar-500 animate-pulse" />
-              <span>Interactive Live Video Infrastructure</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-solar-600 font-mono">0% Platform Cuts</span>
+          {/* Hero Left Column (6 or 7 Cols) */}
+          <div className="lg:col-span-7 flex flex-col items-start text-left space-y-7 max-w-2xl">
+            
+            {/* Social Proof Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 shadow-sm">
+              <div className="flex items-center gap-0.5 text-[#FF801E]">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-[#FF801E]" />
+                ))}
+              </div>
+              <span className="text-xs font-medium text-slate-700 font-sans tracking-tight">
+                Rated 4.9/5 by 2700+ customers
+              </span>
+            </div>
+
+            {/* Hero Headline: Fustat Bold, 75px, 1.05 line-height, -2px tracking */}
+            <h1
+              className="text-4xl sm:text-6xl lg:text-[75px] font-bold text-[#0f172a] tracking-[-2px] leading-[1.05] font-['Fustat',sans-serif]"
+            >
+              Work smarter, <br className="hidden sm:inline" />
+              achieve faster
+            </h1>
+
+            {/* Subheadline: 18px, Inter, -1px tracking */}
+            <p className="text-base sm:text-[18px] text-[#64748b] font-normal tracking-[-0.5px] sm:tracking-[-1px] leading-[1.6] max-w-xl font-['Inter',sans-serif]">
+              Effortlessly manage your projects, collaborate with your team, and achieve your goals with our intuitive task management tool.
+            </p>
+
+            {/* Actions & Primary CTA Button */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <button
+                type="button"
+                onClick={onEnterPresenter}
+                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-sm sm:text-base font-semibold text-white transition-all duration-200 ease-out hover:scale-[1.02] cursor-pointer shadow-[0_10px_25px_-5px_rgba(0,132,255,0.4)]"
+                style={{
+                  backgroundColor: 'rgba(0, 132, 255, 0.88)',
+                  backdropFilter: 'blur(2px)',
+                  WebkitBackdropFilter: 'blur(2px)',
+                  borderRadius: '16px',
+                  boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 12px 24px -6px rgba(0, 132, 255, 0.35)',
+                }}
+              >
+                <span>Get Started Now</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white transition-transform duration-200 group-hover:translate-x-0.5">
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={onEnterStage}
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-[16px] text-sm font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 transition-all cursor-pointer shadow-sm"
+              >
+                <span>Live Meeting Room</span>
+                <ArrowUpRight className="h-4 w-4 text-slate-400" />
+              </button>
+            </div>
+
+          </div>
+
+          {/* Hero Right Column: The Glassy Orb Video */}
+          <div className="lg:col-span-5 relative flex items-center justify-center min-h-[420px] lg:min-h-[560px]">
+            {/* Ambient Background Glow for the Orb */}
+            <div className="absolute w-[360px] h-[360px] rounded-full bg-[#319AFF]/30 blur-[90px] pointer-events-none" />
+
+            {/* Video Orb with screen mix blend and exact CSS filter color grade */}
+            <div className="relative w-full max-w-[480px] lg:max-w-[540px] flex items-center justify-center">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-auto object-contain mix-blend-screen scale-110 lg:scale-125 transform pointer-events-none select-none"
+                style={{
+                  filter: 'hue-rotate(-55deg) saturate(250%) brightness(1.2) contrast(1.1)',
+                }}
+              >
+                <source src="https://future.co/images/homepage/glassy-orb/orb-purple.webm" type="video/webm" />
+              </video>
             </div>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold text-obsidian tracking-tight leading-[1.12]">
-            Interactive live streaming{' '}
-            <span className="font-light text-slate-400">that keeps buyers inside the video.</span>
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto font-sans font-normal leading-relaxed">
-            Eliminate link drop-off. LetItBeMe embeds live apps, interactive forms, and instant in-stream checkouts directly alongside your 1080p60 WebRTC video broadcast.
+        </div>
+
+        {/* Footer Logos: "Trusted by Top-tier product companies" */}
+        <div className="mt-20 sm:mt-28 pt-12 border-t border-slate-100 flex flex-col items-center text-center space-y-8">
+          <p className="text-xs font-semibold uppercase tracking-[1.5px] text-slate-400 font-sans">
+            Trusted by Top-tier product companies
           </p>
 
-          {/* Interactive Stream Prompt Box */}
-          <div className="max-w-2xl mx-auto pt-2">
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-3 sm:p-4 text-left transition-all hover:border-solar-400">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <input
-                  type="text"
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  className="w-full text-xs sm:text-sm font-sans text-obsidian bg-transparent border-none focus:outline-none placeholder-slate-400"
-                  placeholder="Describe your live broadcast or interactive demo..."
-                />
-                <button
-                  type="button"
-                  onClick={onEnterStage}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-b from-[#FF7A1A] via-[#FF6B00] to-[#E65100] text-white flex items-center justify-center shrink-0 shadow-[0_3px_10px_rgba(255,107,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:shadow-[0_4px_14px_rgba(255,107,0,0.5)] transition-all cursor-pointer"
-                  title="Test Live Stage Preview"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
+          <div className="w-full overflow-x-auto pb-4 scrollbar-none">
+            <div className="flex items-center justify-center gap-[60px] sm:gap-[100px] shrink-0 opacity-40 grayscale hover:opacity-70 transition-opacity">
+              {/* 5 Clean Grayscale Logos */}
+              <svg className="h-7 w-auto" viewBox="0 0 120 30" fill="currentColor">
+                <text x="0" y="22" fontFamily="Fustat, sans-serif" fontSize="22" fontWeight="bold">AcmeCorp</text>
+              </svg>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-400 font-mono">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex items-center gap-1 text-solar-600 font-semibold font-sans">
-                    <span className="h-1.5 w-1.5 rounded-full bg-solar-500 animate-pulse" />
-                    WebRTC &lt;85ms
-                  </span>
-                  <span>•</span>
-                  <span>Zero Tab Redirects</span>
-                  <span>•</span>
-                  <span>AI Live Subtitles</span>
-                </div>
-                <span className="text-slate-400 hidden sm:inline">100% Free Core</span>
-              </div>
+              <svg className="h-7 w-auto" viewBox="0 0 110 30" fill="currentColor">
+                <text x="0" y="22" fontFamily="Fustat, sans-serif" fontSize="22" fontWeight="bold">Polymer</text>
+              </svg>
+
+              <svg className="h-7 w-auto" viewBox="0 0 100 30" fill="currentColor">
+                <text x="0" y="22" fontFamily="Fustat, sans-serif" fontSize="22" fontWeight="bold">Spheroid</text>
+              </svg>
+
+              <svg className="h-7 w-auto" viewBox="0 0 110 30" fill="currentColor">
+                <text x="0" y="22" fontFamily="Fustat, sans-serif" fontSize="22" fontWeight="bold">VortexAI</text>
+              </svg>
+
+              <svg className="h-7 w-auto" viewBox="0 0 100 30" fill="currentColor">
+                <text x="0" y="22" fontFamily="Fustat, sans-serif" fontSize="22" fontWeight="bold">Hyperia</text>
+              </svg>
             </div>
           </div>
-
-          {/* 3D Glassmorphic Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={onEnterStage}
-              className="rounded-full px-7 py-3 text-xs sm:text-sm shadow-solar-sm hover:shadow-solar-md font-semibold"
-              rightIcon={<ArrowRight className="h-4 w-4" />}
-            >
-              Test Live Stage Experience
-            </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={onEnterPresenter}
-              className="rounded-full px-7 py-3 text-xs sm:text-sm font-semibold border-slate-200"
-              leftIcon={<Radio className="h-4 w-4 text-solar-500" />}
-            >
-              Presenter Command Studio
-            </Button>
-          </div>
-
         </div>
 
-        {/* Scroll Indicator Prompt */}
-        <button
-          type="button"
-          onClick={scrollToPreview}
-          className="absolute bottom-6 flex flex-col items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-obsidian transition-colors cursor-pointer"
-        >
-          <span>Scroll to explore live stage preview</span>
-          <ChevronDown className="h-4 w-4 animate-bounce text-solar-500" />
-        </button>
       </div>
-
-      {/* 2. FULL DEDICATED STAGE PREVIEW SECTION (Below the fold) */}
-      <div id="stage-preview-section" className="py-20 bg-slate-50/50 border-t border-slate-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 text-center">
-          
-          <div className="max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-obsidian tracking-tight">
-              Live In-Stream Interactive Experience
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-sans">
-              Experience the dual-pane WebRTC broadcast alongside live 1-click passes, voting polls, and sandboxed web apps.
-            </p>
-          </div>
-
-          {/* macOS Preview Window */}
-          <div className="rounded-[32px] p-3 sm:p-5 bg-white border border-slate-200/90 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.09)] space-y-3.5 text-left">
-            
-            {/* Window Topbar */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                </div>
-                <div className="ml-3 px-3.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-mono text-slate-600 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-solar-500 animate-pulse" />
-                  <span>live.letitbe.me/founder-masterclass</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-emerald-700 font-semibold bg-emerald-50 px-3 py-0.5 rounded-full border border-emerald-200">
-                  ● 1080p60 Live
-                </span>
-              </div>
-            </div>
-
-            {/* Stage Preview Dual Pane (Generous 520px Height) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[500px]">
-              <div className="lg:col-span-7 h-full min-h-[400px]">
-                <VideoPlayer />
-              </div>
-              <div className="lg:col-span-5 h-full min-h-[440px]">
-                <InteractiveLayer />
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-    </section>
+    </div>
   );
 };
