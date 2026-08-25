@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, ArrowRight } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 export const ComparisonSection: React.FC = () => {
   const comparisonRows = [
@@ -41,40 +41,42 @@ export const ComparisonSection: React.FC = () => {
   ];
 
   return (
-    <section id="comparison-section" className="py-24 bg-white space-y-16 font-sans text-left border-b border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <section id="comparison-section" className="py-20 sm:py-28 bg-white space-y-16 font-sans text-left border-b border-slate-100">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 space-y-16">
         
-        {/* Horizontal Keynote Banner with Smooth Rounded Edges */}
-        <div className="relative rounded-3xl sm:rounded-[36px] overflow-hidden shadow-2xl bg-[#0f172a] border border-slate-800 min-h-[340px] sm:min-h-[400px] flex items-center">
+        {/* Full-Width Keynote Visual (Zero Shadow, Extended to Horizontal Edges, Thinner Refined Typography) */}
+        <div className="relative w-full rounded-[24px] sm:rounded-[32px] overflow-hidden bg-[#0A0E1A] border border-slate-200/80 min-h-[380px] sm:min-h-[460px] lg:min-h-[520px] flex items-center">
+          {/* High-End Regenerated Keynote Image */}
           <img
-            src="/solar_stage_keynote.jpg"
+            src="/keynote_stage_luxury.jpg"
             alt="Keynote Live Stage"
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-70"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-90"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0f172a]/95 via-[#0f172a]/70 to-transparent" />
+          {/* Clean Gradient Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0E1A]/90 via-[#0A0E1A]/50 to-transparent" />
 
-          <div className="relative z-10 p-8 sm:p-12 lg:p-16 max-w-xl space-y-4">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold tracking-tight text-white leading-tight">
+          <div className="relative z-10 p-8 sm:p-14 lg:p-20 max-w-2xl space-y-4">
+            <h3 className="text-3xl sm:text-4xl lg:text-[46px] font-medium tracking-[-0.02em] text-white leading-[1.12] font-['Plus_Jakarta_Sans',sans-serif]">
               Building the infrastructure for interactive video
             </h3>
-            <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-300 font-light leading-relaxed max-w-lg">
               Eliminate external link drop-off. LetItBeMe embeds live forms, sandboxes, and checkouts directly inside the broadcast.
             </p>
           </div>
         </div>
 
         {/* Comparison Matrix Table */}
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-6xl mx-auto">
           <div className="space-y-2">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#0084FF]">
               Architecture Benchmark
             </span>
-            <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-heading font-medium text-[#0f172a] tracking-tight">
               Why leading software teams choose LetItBeMe
             </h3>
           </div>
 
-          <div className="bg-slate-50/70 rounded-3xl border border-slate-200/90 overflow-hidden shadow-sm">
+          <div className="bg-slate-50/70 rounded-3xl border border-slate-200/90 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
