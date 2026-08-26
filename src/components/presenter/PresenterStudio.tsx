@@ -93,11 +93,11 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
         <div className="min-h-screen bg-[#FAF9F6] text-slate-900 flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif] p-3 sm:p-5">
           
           {/* Top Room Header Bar */}
-          <header className="h-14 px-4 sm:px-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center justify-between shrink-0 mb-4">
+          <header className="h-12 px-4 sm:px-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center justify-between shrink-0 mb-3">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>REC {formatDuration(streamDuration)}</span>
+                <span>Live</span>
               </span>
 
               <div className="h-4 w-px bg-slate-200" />

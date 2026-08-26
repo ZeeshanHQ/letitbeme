@@ -21,11 +21,16 @@ import {
   User,
   ArrowRight,
   ShieldCheck,
+  Languages,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
-import { useStream } from '../../context/StreamContext';
+import { useStream, SupportedLanguage } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { PostMeetingProModal } from '../common/PostMeetingProModal';
+import { RecordingDownloadModal } from './RecordingDownloadModal';
+import { SUPPORTED_LANGUAGES } from '../../data/mockData';
 
 interface VideoPlayerProps {
   showHostControls?: boolean;
@@ -52,6 +57,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     setIsWaitingInLobby,
     isGuestJoined,
     setIsGuestJoined,
+    isAiTranslationActive,
+    toggleAiTranslation,
+    currentLanguage,
+    setLanguage,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -62,6 +71,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(0.85);
   const [showProSummary, setShowProSummary] = useState(false);
+  const [isCaptionsOpen, setIsCaptionsOpen] = useState(false);
 
   // Guest join state
   const [guestName, setGuestName] = useState(user?.fullName || '');
@@ -85,8 +95,36 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+
+  // Female voice announcement for recording
+  const playVoiceAnnouncement = (text: string) => {
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (v.name.toLowerCase().includes('female') ||
+              v.name.toLowerCase().includes('samantha') ||
+              v.name.toLowerCase().includes('google us english') ||
+              v.name.toLowerCase().includes('zira') ||
+              v.name.toLowerCase().includes('karen'))
+        ) || voices.find((v) => v.lang.startsWith('en'));
+        if (femaleVoice) utterance.voice = femaleVoice;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch {
+      // Audio note
+    }
+  };
 
   // Recording Timer
   useEffect(() => {
@@ -106,6 +144,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
+      playVoiceAnnouncement('Recording has stopped.');
       setIsRecording(false);
     } else {
       try {
@@ -135,21 +174,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         recorder.onstop = () => {
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
-          a.download = `letitbeme-recording-${editSlug}-${new Date().toISOString().slice(0, 10)}.webm`;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-          }, 100);
+          setRecordedBlobUrl(url);
+          setShowDownloadModal(true);
         };
 
         recorder.start(1000);
         mediaRecorderRef.current = recorder;
         setIsRecording(true);
+        playVoiceAnnouncement('This meeting is being recorded.');
       } catch (err) {
         console.warn('Recording note:', err);
       }
@@ -164,7 +196,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       if (!isLive) {
         toggleLiveStatus();
       }
-    }, 850);
+    }, 600);
   };
 
   const handleGuestKnock = () => {
@@ -215,10 +247,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
   // Format live duration
   const formatDuration = (secs: number) => {
-    const hrs = Math.floor(secs / 3600);
-    const mins = Math.floor((secs % 3600) / 60);
+    const mins = Math.floor(secs / 60);
     const s = secs % 60;
-    return `${hrs > 0 ? `${hrs}:` : ''}${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   // Bind camera stream
@@ -762,18 +793,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       )}
 
-      {/* Top Floating Telemetry & Participant Status */}
-      <div className="relative z-30 p-4 flex items-center justify-between pointer-events-none">
+      {/* Top Floating Status Indicator inside Video */}
+      <div className="relative z-30 p-3 sm:p-4 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[11px] font-bold text-white bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono">
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-            <span>{formatDuration(streamDuration)}</span>
-          </span>
-
-          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-            <Users className="h-3 w-3 text-slate-400" />
-            <span>{viewerCount}</span>
-          </span>
+          {isRecording ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-rose-600/90 backdrop-blur-md px-3 py-1 rounded-full border border-rose-400/30 font-mono animate-pulse">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+              <span>REC {formatDuration(recordingSeconds)}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+              <Users className="h-3 w-3 text-slate-400" />
+              <span>{viewerCount}</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -786,12 +819,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       </div>
 
-      {/* Subtitle Overlay */}
+      {/* Subtitle Overlay (Live Speech & AI Translation) */}
       <SubtitleOverlay />
 
       {/* Bottom Floating Control Dock */}
       <div className="relative z-30 p-2 sm:p-4 flex items-center justify-center w-full overflow-hidden">
-        <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-white/15 shadow-2xl max-w-full overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-white/15 shadow-2xl max-w-full overflow-x-auto relative">
           
           {/* Volume */}
           <button
@@ -821,7 +854,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           <button
             type="button"
             onClick={toggleMic}
-            className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
               isMicOn
                 ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700'
                 : 'bg-rose-600 text-white hover:bg-rose-700'
@@ -835,7 +868,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           <button
             type="button"
             onClick={toggleCam}
-            className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
               isCamOn
                 ? 'bg-[#0084FF] text-white hover:bg-[#0074E0]'
                 : 'bg-rose-600 text-white hover:bg-rose-700'
@@ -851,7 +884,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               <button
                 type="button"
                 onClick={toggleScreenShare}
-                className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   isScreenSharing
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                     : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
@@ -861,15 +894,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
               </button>
 
+              {/* Record Button (Host Only) with Female Voice Announcement */}
               <button
                 type="button"
                 onClick={handleToggleRecording}
-                className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   isRecording
                     ? 'bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-600/30'
                     : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
                 }`}
-                title={isRecording ? 'Stop Recording and Save Video' : 'Record Meeting'}
+                title={isRecording ? 'Stop Recording' : 'Record Meeting (HD)'}
               >
                 <span className={`h-2 w-2 rounded-full ${isRecording ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
                 <span className="hidden sm:inline">
@@ -878,6 +912,78 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </button>
             </>
           )}
+
+          {/* Captions / AI Live Translation Dropdown Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsCaptionsOpen(!isCaptionsOpen)}
+              className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer border ${
+                isAiTranslationActive
+                  ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-900/30'
+                  : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
+              }`}
+              title="Live Captions & AI Translation"
+            >
+              <Languages className="h-4 w-4" />
+              <span className="hidden md:inline">Captions</span>
+            </button>
+
+            {/* Captions Language Selection Dropdown Menu */}
+            {isCaptionsOpen && (
+              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 w-64 bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-700 shadow-2xl p-3 z-50 text-left space-y-3 animate-slide-up text-white">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-1.5 text-xs font-bold font-heading">
+                    <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                    <span>Live AI Captions</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleAiTranslation}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      isAiTranslationActive
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {isAiTranslationActive ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Translate To Language:
+                  </label>
+                  <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(lang.code as SupportedLanguage);
+                          if (!isAiTranslationActive) toggleAiTranslation();
+                          setIsCaptionsOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
+                          currentLanguage === lang.code
+                            ? 'bg-purple-600/30 text-purple-300 font-bold border border-purple-500/40'
+                            : 'hover:bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </span>
+                        {currentLanguage === lang.code && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Leave / End Call */}
           <button
@@ -926,10 +1032,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       </div>
 
-      {/* Post-Meeting Pro Conversion Summary Modal */}
+      {/* Post-Meeting Pro Conversion Summary Modal (5+ min sessions) */}
       <PostMeetingProModal
         isOpen={showProSummary}
         onClose={() => setShowProSummary(false)}
+      />
+
+      {/* Meeting Recording Preview & Download Modal */}
+      <RecordingDownloadModal
+        isOpen={showDownloadModal}
+        videoBlobUrl={recordedBlobUrl}
+        recordingDuration={recordingSeconds}
+        onClose={() => setShowDownloadModal(false)}
+        onDelete={() => {
+          if (recordedBlobUrl) URL.revokeObjectURL(recordedBlobUrl);
+          setRecordedBlobUrl(null);
+          setShowDownloadModal(false);
+        }}
       />
     </div>
   );
