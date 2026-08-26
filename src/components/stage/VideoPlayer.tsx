@@ -16,13 +16,11 @@ import {
   Radio,
   PhoneOff,
   PictureInPicture2,
-  UserCheck,
-  UserX,
   Play,
   Loader2,
-  Sparkles,
   User,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -52,6 +50,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     denyParticipant,
     isWaitingInLobby,
     setIsWaitingInLobby,
+    isGuestJoined,
+    setIsGuestJoined,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -65,7 +65,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
   // Guest join state
   const [guestName, setGuestName] = useState(user?.fullName || '');
-  const [isGuestJoined, setIsGuestJoined] = useState(false);
   const [hasKnocked, setHasKnocked] = useState(false);
 
   // Real-time editable host name and slug
@@ -341,10 +340,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   // 1. GUEST WAITING ROOM LOBBY (When knocked)
   if (!showHostControls && isWaitingInLobby && hasKnocked) {
     return (
-      <div className="relative w-full h-full min-h-[400px] sm:min-h-[480px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-5 sm:p-8 text-center text-white space-y-5 sm:space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
+      <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-8 sm:p-12 flex flex-col items-center justify-center text-center space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="relative">
-          <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-blue-500/20 border-2 border-[#0084FF] flex items-center justify-center animate-pulse">
-            <Radio className="h-8 w-8 sm:h-10 sm:w-10 text-[#0084FF]" />
+          <div className="h-24 w-24 rounded-full bg-blue-50 border-2 border-[#0084FF] flex items-center justify-center animate-pulse">
+            <Radio className="h-10 w-10 text-[#0084FF]" />
           </div>
           <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -353,30 +352,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
 
         <div className="space-y-2 max-w-md">
-          <h3 className="text-xl sm:text-2xl font-heading font-bold text-white tracking-tight">
+          <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
             Waiting for the host to let you in...
           </h3>
-          <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+          <p className="text-sm text-slate-500 leading-relaxed">
             The host has received your join request. You will be connected automatically when admitted.
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
-          Guest: <strong className="text-white">{guestName || 'Attendee'}</strong>
+        <div className="px-5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700">
+          Joining as: <strong className="text-slate-900 font-bold">{guestName || 'Attendee'}</strong>
         </div>
       </div>
     );
   }
 
-  // 2. GUEST JOIN SCREEN (Ask for Name before joining)
+  // 2. GUEST PRE-JOIN SCREEN (Zoom & Google Meet Industry Standard Widescreen Layout)
   if (!showHostControls && !isGuestJoined) {
     return (
-      <div className="relative w-full h-full min-h-[420px] sm:min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-5 sm:p-8 text-center text-white space-y-5 sm:space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
-        
-        {/* Device Check Preview */}
-        <div className="relative">
-          {isCamOn && localCamStream ? (
-            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
+      <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-10 lg:p-12 font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
+          {/* Left Column: 16:9 HD Camera Preview with Floating Device Controls */}
+          <div className="lg:col-span-7 relative aspect-video bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center border border-slate-800">
+            {isCamOn && localCamStream ? (
               <video
                 ref={guestLobbyCamRef}
                 autoPlay
@@ -384,99 +383,114 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 muted
                 className="w-full h-full object-cover scale-x-[-1] transform"
               />
-            </div>
-          ) : (
-            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl font-heading font-bold">
-              {(guestName || 'G').charAt(0).toUpperCase()}
-            </div>
-          )}
-
-          <div className="absolute bottom-0 right-0 p-1.5 sm:p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
-            {isMicOn ? <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-400" /> : <MicOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-500" />}
-          </div>
-        </div>
-
-        <div className="space-y-1 max-w-md">
-          <h3 className="text-xl sm:text-2xl font-heading font-bold text-white tracking-tight">
-            Ready to join the meeting?
-          </h3>
-          <p className="text-xs text-slate-400">
-            Enter your name to let the host know who is joining
-          </p>
-        </div>
-
-        {/* Guest Name Input */}
-        <form onSubmit={(e) => { e.preventDefault(); handleGuestKnock(); }} className="w-full max-w-xs space-y-3">
-          <div className="relative">
-            <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              required
-              autoFocus
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="What's your name?"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900/90 text-white text-xs font-semibold focus:outline-none focus:border-[#0084FF]"
-            />
-          </div>
-
-          {/* Camera / Mic Quick Check */}
-          <div className="flex items-center justify-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={toggleMic}
-              className={`p-2.5 rounded-full border transition-all cursor-pointer ${
-                isMicOn ? 'bg-slate-800 border-slate-700 text-white' : 'bg-rose-600 border-rose-600 text-white'
-              }`}
-              title="Microphone"
-            >
-              {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleCam}
-              className={`p-2.5 rounded-full border transition-all cursor-pointer ${
-                isCamOn ? 'bg-[#0084FF] border-[#0084FF] text-white' : 'bg-slate-800 border-slate-700 text-slate-300'
-              }`}
-              title="Camera"
-            >
-              {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            disabled={!guestName.trim() || isConnecting}
-            className="w-full py-3 px-4 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50 transition-all"
-          >
-            {isConnecting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Knocking Room Door...</span>
-              </>
             ) : (
-              <>
-                <span>Ask to Join Meeting</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </>
+              <div className="flex flex-col items-center justify-center space-y-3 text-slate-400">
+                <div className="h-20 w-20 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white text-3xl font-heading font-bold shadow-inner">
+                  {(guestName || 'G').charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs font-mono text-slate-500">Camera is off</span>
+              </div>
             )}
-          </button>
-        </form>
 
+            {/* Floating Device Controls Overlay at the bottom of the video */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                  isMicOn
+                    ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700'
+                    : 'bg-rose-600 border-rose-600 text-white'
+                }`}
+                title={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
+              >
+                {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleCam}
+                className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                  isCamOn
+                    ? 'bg-[#0084FF] border-[#0084FF] text-white hover:bg-[#0074E0]'
+                    : 'bg-rose-600 border-rose-600 text-white'
+                }`}
+                title={isCamOn ? 'Stop video' : 'Start video'}
+              >
+                {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Enter Meeting Info Form */}
+          <div className="lg:col-span-5 flex flex-col justify-center text-left space-y-6">
+            <div className="space-y-1.5">
+              <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
+                Enter Meeting Info
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Check your camera &amp; mic before requesting entry.
+              </p>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleGuestKnock(); }} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Your Display Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="e.g. Alex Rivera"
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 text-sm font-semibold focus:outline-none focus:border-[#0084FF] shadow-sm font-sans"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!guestName.trim() || isConnecting}
+                className="w-full py-4 px-6 rounded-2xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-50 transition-all hover:scale-[1.01]"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Knocking Room Door...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Ask to Join Meeting</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 text-[11px] text-slate-400 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>100% Encrypted WebRTC Session • Zero Downloads</span>
+            </div>
+          </div>
+
+        </div>
       </div>
     );
   }
 
-  // 3. HOST PRE-MEETING GREEN ROOM ("Ready to meet?")
+  // 3. HOST PRE-MEETING GREEN ROOM (Widescreen Studio Preview)
   if (showHostControls && !isMeetingStarted) {
     return (
-      <div className="relative w-full h-full min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
-        
-        {/* Avatar / Device Check Circle */}
-        <div className="relative">
-          {isCamOn && localCamStream ? (
-            <div className="h-28 w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
+      <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-10 lg:p-12 font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
+          {/* Left Column: 16:9 HD Camera Preview */}
+          <div className="lg:col-span-7 relative aspect-video bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center border border-slate-800">
+            {isCamOn && localCamStream ? (
               <video
                 ref={greenRoomCamRef}
                 autoPlay
@@ -484,95 +498,91 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 muted
                 className="w-full h-full object-cover scale-x-[-1] transform"
               />
-            </div>
-          ) : user?.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt={user?.fullName || 'Host'}
-              referrerPolicy="no-referrer"
-              className="h-28 w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover bg-slate-800"
-            />
-          ) : (
-            <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
-              {(user?.fullName || 'H').charAt(0).toUpperCase()}
-            </div>
-          )}
+            ) : user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user?.fullName || 'Host'}
+                referrerPolicy="no-referrer"
+                className="h-28 w-28 rounded-full border-2 border-[#0084FF] shadow-2xl object-cover bg-slate-800"
+              />
+            ) : (
+              <div className="h-28 w-28 rounded-full bg-slate-900 border-2 border-slate-800 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
+                {(user?.fullName || 'H').charAt(0).toUpperCase()}
+              </div>
+            )}
 
-          {/* Quick mic status indicator */}
-          <div className="absolute bottom-0 right-0 p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
-            {isMicOn ? <Mic className="h-4 w-4 text-emerald-400" /> : <MicOff className="h-4 w-4 text-rose-500" />}
+            {/* Floating Device Controls */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                  isMicOn
+                    ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700'
+                    : 'bg-rose-600 border-rose-600 text-white'
+                }`}
+                title={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
+              >
+                {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleCam}
+                className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                  isCamOn
+                    ? 'bg-[#0084FF] border-[#0084FF] text-white hover:bg-[#0074E0]'
+                    : 'bg-rose-600 border-rose-600 text-white'
+                }`}
+                title={isCamOn ? 'Stop video' : 'Start video'}
+              >
+                {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
+
+          {/* Right Column: Host Room Details & Start Button */}
+          <div className="lg:col-span-5 flex flex-col justify-center text-left space-y-6">
+            <div className="space-y-1.5">
+              <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
+                Ready to start meeting?
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Broadcasting as <strong className="text-slate-900 font-bold">{user?.fullName || 'Host Presenter'}</strong> (@{user?.customSlug || 'live'}).
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={isConnecting}
+              onClick={handleStartMeeting}
+              className="w-full py-4 px-6 rounded-2xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-sm font-semibold flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-50 transition-all hover:scale-[1.01]"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Starting Meeting...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 fill-white" />
+                  <span>Start Meeting Now</span>
+                </>
+              )}
+            </button>
+
+            <div className="pt-2 text-[11px] text-slate-400 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>WebRTC Mesh Global Relay: Active</span>
+            </div>
+          </div>
+
         </div>
-
-        <div className="space-y-1 max-w-md">
-          <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
-            Ready to start your meeting?
-          </h3>
-          <p className="text-xs text-slate-400">
-            Broadcasting as <strong className="text-white">{user?.fullName || 'Host Presenter'}</strong> (@{user?.customSlug || 'live'})
-          </p>
-        </div>
-
-        {/* Device Pre-Check Controls */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleMic}
-            className={`p-3 rounded-full border transition-all cursor-pointer ${
-              isMicOn
-                ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700'
-                : 'bg-rose-600 border-rose-600 text-white'
-            }`}
-            title={isMicOn ? 'Microphone is on' : 'Microphone is muted'}
-          >
-            {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleCam}
-            className={`p-3 rounded-full border transition-all cursor-pointer ${
-              isCamOn
-                ? 'bg-[#0084FF] border-[#0084FF] text-white hover:bg-[#0074E0]'
-                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-            }`}
-            title={isCamOn ? 'Camera is on' : 'Camera is off'}
-          >
-            {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-          </button>
-        </div>
-
-        {/* Start Meeting Button */}
-        <button
-          type="button"
-          disabled={isConnecting}
-          onClick={handleStartMeeting}
-          className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:scale-[1.02] cursor-pointer shadow-lg shadow-blue-500/20"
-          style={{
-            backgroundColor: 'rgba(0, 132, 255, 0.92)',
-            backdropFilter: 'blur(2px)',
-            borderRadius: '16px',
-            boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 8px 20px rgba(0, 132, 255, 0.3)',
-          }}
-        >
-          {isConnecting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Connecting WebRTC Mesh...</span>
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4 fill-white" />
-              <span>Start Meeting Now</span>
-            </>
-          )}
-        </button>
-
       </div>
     );
   }
 
-  // 4. LIVE MEETING STAGE
+  // 4. LIVE IN-MEETING VIDEO STAGE
   return (
     <div
       ref={containerRef}
@@ -629,16 +639,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           className="absolute inset-0 w-full h-full object-cover scale-x-[-1] transform"
         />
       ) : (
-        /* 3. AI DIGITAL TWIN HOLOGRAPHIC PRESENCE */
+        /* 3. AVATAR STAGE PRESENCE */
         <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4 relative overflow-hidden select-none">
           
-          {/* Ambient Holographic Glow & Neural Audio Waveforms */}
+          {/* Ambient Glow */}
           <div className="absolute w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
           <div className="absolute w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Holographic Avatar with Live Mic Audio Waveforms */}
+          {/* Avatar with Live Mic Audio Waveforms */}
           <div className="relative">
-            {/* Live Audio Reaction Rings */}
             {isMicOn && (
               <>
                 <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
@@ -660,7 +669,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </div>
             )}
 
-            {/* Quick mic status indicator */}
+            {/* Mic Status Indicator */}
             <div className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
               {isMicOn ? (
                 <Mic className="h-4 w-4 text-emerald-400" />
@@ -731,70 +740,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       )}
 
-      {/* Floating Host Admission Notification (Google Meet / Zoom Knock Banner) */}
-      {showHostControls && waitingParticipants.length > 0 && (
-        <div className="absolute top-16 right-4 z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-xl border border-[#0084FF]/40 rounded-3xl p-4 shadow-2xl text-white space-y-3 animate-slide-up select-none">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0084FF] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0084FF]" />
-              </span>
-              <span className="text-xs font-heading font-bold text-white">Join Request ({waitingParticipants.length})</span>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400">Waiting Lobby</span>
-          </div>
-
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {waitingParticipants.map((guest) => (
-              <div key={guest.id} className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-800/90 border border-slate-700/80 hover:border-slate-600 transition-all">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <img
-                    src={guest.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${guest.name}`}
-                    alt={guest.name}
-                    className="h-8 w-8 rounded-full bg-slate-700 object-cover border border-slate-600 shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-white block truncate">{guest.name}</span>
-                    <span className="text-[10px] font-mono text-[#60B1FF] block truncate">
-                      {guest.location || 'Live Attendee 🌐'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => admitParticipant(guest.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1 cursor-pointer shadow-sm transition-all"
-                  >
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>Admit</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => denyParticipant(guest.id)}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-700 cursor-pointer transition-all"
-                    title="Deny entry"
-                  >
-                    <UserX className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Meeting Status Bar */}
-      <div className="relative z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+      {/* Top Floating Telemetry & Participant Status */}
+      <div className="relative z-30 p-4 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-mono">
-            <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span>{isLive ? formatDuration(streamDuration) : '00:00'}</span>
+          <span className="flex items-center gap-1 text-[11px] font-bold text-white bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono">
+            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+            <span>{formatDuration(streamDuration)}</span>
           </span>
 
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-200 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 font-mono">
+          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
             <Users className="h-3 w-3 text-slate-400" />
             <span>{viewerCount}</span>
           </span>
@@ -947,13 +901,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       </div>
 
-      {/* Post-Meeting Summary & Pro Upgrade Modal */}
-      {showHostControls && (
-        <PostMeetingProModal
-          isOpen={showProSummary}
-          onClose={() => setShowProSummary(false)}
-        />
-      )}
+      {/* Post-Meeting Pro Conversion Summary Modal */}
+      <PostMeetingProModal
+        isOpen={showProSummary}
+        onClose={() => setShowProSummary(false)}
+      />
     </div>
   );
 };

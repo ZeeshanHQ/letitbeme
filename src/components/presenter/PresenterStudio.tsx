@@ -63,7 +63,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
       {/* Real-time Door Knock Animated Toast & Requests Badge */}
       <JoinRequestsToast />
 
-      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-8 space-y-5 pb-24 font-['Plus_Jakarta_Sans',sans-serif] text-left">
+      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-8 space-y-6 pb-24 font-['Plus_Jakarta_Sans',sans-serif] text-left max-w-[1780px] 2xl:max-w-[1920px] mx-auto w-full">
         
         {/* 1. High-End Corporate Meeting Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm">

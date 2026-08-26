@@ -240,7 +240,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
                   </div>
                 </div>
               )
+            ) : currentView === 'stage' ? (
+              /* Clean Minimal Live Session Badge for Attendees (No sign-in clutter) */
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Live Meeting</span>
+                </span>
+              </div>
             ) : (
+              /* Landing Page Auth Actions */
               <div className="flex items-center gap-2">
                 <button
                   type="button"
