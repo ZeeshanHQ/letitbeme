@@ -94,8 +94,8 @@ export const StageCanvas: React.FC = () => {
   // Shows ONLY the clean Pre-Join / Waiting Lobby view (Zoom / Google Meet Standard)
   if (!isGuestJoined) {
     return (
-      <div className="min-h-screen bg-[#FAF9F6] p-4 sm:p-8 lg:p-12 flex items-center justify-center font-['Plus_Jakarta_Sans',sans-serif]">
-        <div className="w-full max-w-[1550px] animate-fade-in">
+      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-4 sm:p-8 lg:p-12 flex items-center justify-center font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-full max-w-5xl animate-fade-in">
           <VideoPlayer showHostControls={false} />
         </div>
       </div>
