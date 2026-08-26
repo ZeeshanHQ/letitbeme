@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface HeroSectionProps {
@@ -33,12 +33,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           
           {/* Hero Left Column */}
           <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6 max-w-2xl">
-            
-            {/* Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#0084FF] text-xs font-semibold">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Next-Gen Interactive Live Video Commerce</span>
-            </div>
 
             {/* Hero Headline */}
             <h1
