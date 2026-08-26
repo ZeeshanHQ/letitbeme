@@ -162,7 +162,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     if (pipCamVideoRef.current && localCamStream) {
       pipCamVideoRef.current.srcObject = localCamStream;
     }
-  }, [localCamStream, isCamOn, isMeetingStarted, isGuestJoined]);
+  }, [localCamStream, isCamOn, isMeetingStarted, isGuestJoined, isScreenSharing]);
 
   // Bind screen stream
   useEffect(() => {
@@ -308,7 +308,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover scale-x-[-1] transform"
               />
             </div>
           ) : (
@@ -408,7 +408,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover scale-x-[-1] transform"
               />
             </div>
           ) : user?.avatarUrl ? (
@@ -516,29 +516,43 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain bg-slate-950"
           />
-          {/* PiP Camera Overlay */}
-          {isCamOn && localCamStream && (
-            <div className="absolute bottom-20 right-4 w-44 h-32 rounded-2xl overflow-hidden border-2 border-[#0084FF] shadow-2xl z-30">
+          {/* PiP Host Floating Overlay over Screen Share */}
+          {isCamOn && localCamStream ? (
+            <div className="absolute bottom-20 right-4 w-48 h-32 rounded-2xl overflow-hidden border-2 border-[#0084FF] shadow-2xl z-30 bg-slate-900 animate-fade-in">
               <video
                 ref={pipCamVideoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover scale-x-[-1] transform"
               />
+              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-mono text-white flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{user?.fullName || 'Host'}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute bottom-20 right-4 px-3 py-2 rounded-2xl border border-slate-700 bg-slate-900/90 backdrop-blur-md shadow-2xl z-30 flex items-center gap-2.5 animate-fade-in">
+              <div className="h-8 w-8 rounded-full bg-[#0084FF] text-white font-bold text-xs flex items-center justify-center shadow-inner">
+                {(user?.fullName || 'H').charAt(0).toUpperCase()}
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-semibold text-white block leading-tight">{user?.fullName || 'Host'}</span>
+                <span className="text-[10px] font-mono text-emerald-400">● Presenting</span>
+              </div>
             </div>
           )}
         </div>
       ) : isCamOn && localCamStream ? (
-        /* 2. REAL CAMERA VIDEO FEED */
+        /* 2. REAL CAMERA VIDEO FEED (Mirrored Horizontally for Natural Self-View) */
         <video
           ref={camVideoRef}
           autoPlay
           playsInline
           muted
-          className="absolute inset-0 w-full h-full object-cover mirror"
+          className="absolute inset-0 w-full h-full object-cover scale-x-[-1] transform"
         />
       ) : (
         /* 3. AI DIGITAL TWIN HOLOGRAPHIC PRESENCE */
