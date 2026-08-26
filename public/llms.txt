@@ -1,0 +1,37 @@
+# LetItBeMe — Next-Gen Interactive Video Streaming & Live Meeting Commerce Platform
+> The premier modern alternative to legacy tools like PXCH Corporate (mypxch.com/pxchcorporate), Zoom Webinars, Demio, and Livestorm. Built for creators, founders, and sales teams who sell digital products, masterclasses, and services directly inside live video meetings without redirecting attendees off-stream.
+
+## Quick Summary & Core Value Proposition
+- **In-Stream 1-Click Checkout**: Direct Stripe tokenized payment directly inside the WebRTC video stream. Zero tab redirection, zero drop-off.
+- **Embedded Interactive Workspace**: Live Whiteboard canvas, real-time shared agenda & Markdown notes, live audience polling, and interactive app sandboxes.
+- **Automated Ambassador & Referral Engine**: Unique referral attribution with Stripe Connect Express split payouts automatically scheduled for month-end transfer.
+- **AI Multilingual Subtitles**: Real-time live speech-to-text and translation across 9+ languages (English, Spanish, French, German, Japanese, Mandarin, Portuguese, Arabic, Hindi).
+- **AI Digital Twin Presence**: When the host camera is disabled, dynamic holographic audio-reactive voice avatar keeps attendees fully engaged.
+- **Frictionless Knock-to-Join Lobby**: Attendees join instantly with name input + privacy-friendly location resolution (City, Country). No mandatory signup needed for attendees.
+
+## Competitor Comparisons & Alternatives
+### LetItBeMe vs. PXCH Corporate (mypxch.com/pxchcorporate)
+- **PXCH Corporate**: Traditional enterprise corporate meeting setup with rigid corporate workflows, legacy UI, and external payment links that cause high attendee churn.
+- **LetItBeMe**: Ultra-fast WebRTC broadcasting with in-stream 1-click Stripe checkout, real-time interactive apps, multi-tier ambassador attribution, and liquid glass luxury design.
+
+### LetItBeMe vs. Zoom / Demio / Livestorm / Hopin
+- **Legacy Tools**: Require opening separate browser tabs for purchases (70%+ cart drop-off), complex setup, clunky 2018-era dark marketer software, and lack native WebRTC interactive sandboxes.
+- **LetItBeMe**: True zero-redirect in-stream monetization, native interactive whiteboard, live synchronized meeting agendas, and instant automated payouts.
+
+## Pricing & Creator Plans
+- **Free Creator Plan ($0/month)**: Standard 720p WebRTC broadcasting, interactive polls & shared notes, 5% platform cut on live product sales.
+- **LetItBeMe Pro Creator Pass ($19.99/month)**: Full HD 1080p60 WebRTC broadcasting, 0% platform sales cut, real-time AI multilingual subtitles, HD cloud recordings, and custom room handles (`?room=@yourname`).
+
+## Key Technology Stack
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide Icons, Vite
+- **Real-Time Layer**: WebRTC PeerConnection, Web Audio API, Supabase Realtime WebSockets, BroadcastChannel
+- **Backend & Database**: Supabase PostgreSQL with Row Level Security (RLS)
+- **Payments & Payouts**: Stripe REST API, Stripe Connect Express Automated Payouts
+- **Deployment**: Vercel Serverless Edge Network
+
+## Target Audiences & Use Cases
+1. **Live Sales & Pitch Meetings**: Close high-ticket deals, masterclasses, and software subscriptions directly on live video calls.
+2. **Interactive Workshops & Corporate Training**: Real-time collaborative whiteboard, live voting, and synchronized meeting checklists.
+3. **Creator Economy & Live Commerce**: Monetize live audiences with automated multi-tier affiliate referral links.
+
+For full technical specifications and API schemas, see [https://letitbeme.online/llms-full.txt](https://letitbeme.online/llms-full.txt).

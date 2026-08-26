@@ -1,0 +1,42 @@
+# LetItBeMe — Complete Technical & Functional Specification
+
+## Overview
+LetItBeMe is an interactive real-time video broadcasting and live meeting commerce platform designed to replace legacy tools such as PXCH Corporate (`mypxch.com/pxchcorporate`), Zoom Webinars, Demio, Hopin, and Livestorm.
+
+## Primary Architecture Modules
+
+### 1. In-Stream 1-Click Commerce
+- Built on top of tokenized Stripe Checkout Sessions.
+- When an attendee clicks "Pay Now" or buys an offer during a stream, checkout occurs directly within the video canvas context without audio interruption or navigation away from the live meeting.
+- Handles automated splits for ambassadors via Stripe Connect Express.
+
+### 2. Interactive Presentation Layer
+- **Live Whiteboard**: Native HTML5 Canvas with pen tool, multi-color palette, eraser, clear, and PNG export.
+- **Synchronized Agenda & Checklist**: Real-time checklist synchronized across all devices via WebSockets and local storage.
+- **Live Audience Polls**: Instant single-click voting with live percentage distribution bars.
+- **Embedded Web Applications**: Sandboxed iframe embedding for tools like Cal.com, Figma, Google Slides, and custom SaaS dashboards.
+
+### 3. AI Digital Twin & Multilingual Subtitles
+- Audio-reactive digital twin presence when camera is toggled off.
+- Real-time speech-to-text with translation into 9+ languages (EN, ES, FR, DE, JA, ZH, PT, AR, HI).
+
+### 4. Ambassador Referral Engine
+- Generates custom tracking links (`?ref=slug`).
+- 30-day attribution window.
+- Real-time GMV, clicks, conversions, and commission reporting.
+- Direct Stripe Connect Express onboarding with automated month-end payouts.
+
+## Comparison Table
+
+| Feature | LetItBeMe | PXCH Corporate | Zoom Webinars | Demio / Livestorm |
+|---|---|---|---|---|
+| In-Stream 1-Click Checkout | Yes (Stripe Direct) | No (External Links) | No | No |
+| Native Interactive Whiteboard | Yes (Zero Sign-up) | Partial (Complex) | Yes (Requires app) | No |
+| AI Digital Twin Voice Avatar | Yes | No | No | No |
+| Automated Affiliate Splits | Yes (Stripe Connect) | No | No | No |
+| Live AI Multilingual Subtitles | Yes (9+ Languages) | No | Limited (Add-on) | No |
+| No-Download Attendee Access | Yes (1-Click WebRTC) | Partial | No (Requires Client) | Yes |
+
+## Contact & Links
+- Official Website: https://letitbeme.online
+- GitHub Repository: https://github.com/ZeeshanHQ/letitbeme

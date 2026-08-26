@@ -1,0 +1,39 @@
+# Robots.txt for LetItBeMe — Next-Gen Interactive Video Streaming & Live Sales Platform
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# AI Crawlers & LLM Scrapers (GEO & AEO Optimization)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# Sitemaps & LLM Context Files
+Sitemap: https://letitbeme.online/sitemap.xml
+Sitemap: https://letitbeme.online/llms.txt
