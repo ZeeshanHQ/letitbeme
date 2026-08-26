@@ -7,9 +7,11 @@ import { StageCanvas } from './components/stage/StageCanvas';
 import { PresenterStudio } from './components/presenter/PresenterStudio';
 import { ReferralDashboard } from './components/dashboard/ReferralDashboard';
 import { InactivityTimeoutModal } from './components/common/InactivityTimeoutModal';
+import { AuthModal } from './components/auth/AuthModal';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('landing');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user } = useAuth();
   const { isPresenterRole, setIsPresenterRole } = useStream();
   const prevUserRef = useRef(user);
@@ -33,7 +35,7 @@ const AppContent: React.FC = () => {
   }, [setIsPresenterRole]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] flex flex-col font-sans selection:bg-solar-500/20 selection:text-solar-900 text-obsidian antialiased">
+    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
       {/* Top Universal Navbar */}
       <Navbar currentView={currentView} setCurrentView={setCurrentView} />
 
@@ -43,9 +45,14 @@ const AppContent: React.FC = () => {
           <LandingPage
             onEnterStage={() => setCurrentView('stage')}
             onEnterPresenter={() => {
-              setIsPresenterRole(true);
-              setCurrentView('presenter');
+              if (user) {
+                setIsPresenterRole(true);
+                setCurrentView('presenter');
+              } else {
+                setIsAuthModalOpen(true);
+              }
             }}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -58,8 +65,14 @@ const AppContent: React.FC = () => {
         {currentView === 'referral' && <ReferralDashboard />}
       </main>
 
-      {/* Inactivity 5-Min Timeout & 60s Auto-Close Modal */}
-      <InactivityTimeoutModal />
+      {/* Global Inactivity Timeout Guard */}
+      {currentView === 'presenter' && <InactivityTimeoutModal />}
+
+      {/* Global Auth Modal for Get Started Flow */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 };

@@ -1,40 +1,39 @@
 import React from 'react';
-import { Star, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeroSectionProps {
   onEnterStage: () => void;
   onEnterPresenter: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onEnterStage,
   onEnterPresenter,
+  onOpenAuth,
 }) => {
+  const { user } = useAuth();
+
+  const handleGetStarted = () => {
+    if (user) {
+      onEnterPresenter();
+    } else if (onOpenAuth) {
+      onOpenAuth();
+    } else {
+      onEnterPresenter();
+    }
+  };
+
   return (
     <div className="relative w-full overflow-hidden bg-white selection:bg-[#319AFF]/20 font-sans -webkit-font-smoothing-antialiased">
-      {/* Top-Left Layered Gradient Glow Ellipses */}
-      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#60B1FF]/30 blur-[120px] pointer-events-none -z-0" />
-      <div className="absolute top-[80px] left-[120px] w-[380px] h-[380px] rounded-full bg-[#319AFF]/25 blur-[100px] pointer-events-none -z-0" />
-
-      {/* Main Container: 1600px Max-Width */}
+      {/* Main Container: 1600px Max-Width (100% Pure Clean White Background) */}
       <div className="relative z-10 mx-auto max-w-[1600px] px-6 sm:px-10 lg:px-16 pt-12 pb-24 sm:pt-20 sm:pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
-          {/* Hero Left Column (6 or 7 Cols) */}
+          {/* Hero Left Column */}
           <div className="lg:col-span-7 flex flex-col items-start text-left space-y-7 max-w-2xl">
             
-            {/* Social Proof Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 shadow-sm">
-              <div className="flex items-center gap-0.5 text-[#FF801E]">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-[#FF801E]" />
-                ))}
-              </div>
-              <span className="text-xs font-medium text-slate-700 font-sans tracking-tight">
-                Rated 4.9/5 by 2700+ customers
-              </span>
-            </div>
-
             {/* Hero Headline: Fustat Bold, 75px, 1.05 line-height, -2px tracking */}
             <h1
               className="text-4xl sm:text-6xl lg:text-[75px] font-bold text-[#0f172a] tracking-[-2px] leading-[1.05] font-['Fustat',sans-serif]"
@@ -52,10 +51,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <button
                 type="button"
-                onClick={onEnterPresenter}
+                onClick={handleGetStarted}
                 className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-sm sm:text-base font-semibold text-white transition-all duration-200 ease-out hover:scale-[1.02] cursor-pointer shadow-[0_10px_25px_-5px_rgba(0,132,255,0.4)]"
                 style={{
-                  backgroundColor: 'rgba(0, 132, 255, 0.88)',
+                  backgroundColor: 'rgba(0, 132, 255, 0.9)',
                   backdropFilter: 'blur(2px)',
                   WebkitBackdropFilter: 'blur(2px)',
                   borderRadius: '16px',
@@ -82,9 +81,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Hero Right Column: The Glassy Orb Video */}
           <div className="lg:col-span-5 relative flex items-center justify-center min-h-[420px] lg:min-h-[560px]">
-            {/* Ambient Background Glow for the Orb */}
-            <div className="absolute w-[360px] h-[360px] rounded-full bg-[#319AFF]/30 blur-[90px] pointer-events-none" />
-
             {/* Video Orb with screen mix blend and exact CSS filter color grade */}
             <div className="relative w-full max-w-[480px] lg:max-w-[540px] flex items-center justify-center">
               <video

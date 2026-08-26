@@ -9,18 +9,21 @@ import { CtaSection } from './CtaSection';
 interface LandingPageProps {
   onEnterStage: () => void;
   onEnterPresenter: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onEnterStage,
   onEnterPresenter,
+  onOpenAuth,
 }) => {
   return (
     <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Hero Section with Embedded Interactive Test-Drive */}
+      {/* Hero Section */}
       <HeroSection
         onEnterStage={onEnterStage}
         onEnterPresenter={onEnterPresenter}
+        onOpenAuth={onOpenAuth}
       />
 
       {/* Core Features Marketing Section with Gradient Cards */}
@@ -36,7 +39,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <RoiCalculator onStartDemo={onEnterStage} />
 
       {/* Bottom Conversion CTA */}
-      <CtaSection onEnterStage={onEnterStage} />
+      <CtaSection onEnterStage={onOpenAuth || onEnterPresenter} />
 
       {/* Minimal Footer with 3D Logo */}
       <footer className="border-t border-slate-100 bg-white py-16 text-slate-500 font-sans">
@@ -52,7 +55,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   className="h-8 w-8 rounded-xl object-cover shadow-sm"
                 />
                 <span className="text-base font-heading font-bold tracking-tight text-obsidian">
-                  LetItBe<span className="text-solar-500 font-medium">Me</span>
+                  LetItBe<span className="text-[#0084FF] font-medium">Me</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 max-w-sm font-light leading-relaxed">

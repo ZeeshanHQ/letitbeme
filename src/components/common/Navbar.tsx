@@ -83,7 +83,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
           </div>
 
           {/* Center Navigation Links */}
-          {user ? (
+          {user && currentView !== 'landing' ? (
+            /* Dashboard View Switcher */
             <nav className="hidden md:flex items-center p-1 bg-slate-100/80 rounded-full border border-slate-200/80 text-xs font-semibold">
               <button
                 type="button"
@@ -125,6 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
               </button>
             </nav>
           ) : (
+            /* Public Landing Page Links */
             <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[#475569] font-['Inter',sans-serif]">
               <button
                 type="button"
@@ -157,64 +159,86 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
             </nav>
           )}
 
-          {/* Right Actions: User Profile or Liquid Glass CTA Button */}
+          {/* Right Actions */}
           <div className="flex items-center gap-2.5">
             {user ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="flex items-center gap-2 p-1 pl-2.5 bg-slate-100 hover:bg-slate-200/80 rounded-full border border-slate-200 transition-all text-xs cursor-pointer"
-                  title="Open Settings"
-                >
-                  <span className="font-semibold text-obsidian hidden sm:inline font-sans">
-                    {user.fullName}
-                  </span>
-                  {user.isPro && (
-                    <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
-                      <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
-                      <span>PRO</span>
-                    </span>
-                  )}
-                  <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
-                    @{user.customSlug}
-                  </span>
+              currentView === 'landing' ? (
+                /* On Landing page: Show clean "Go to Dashboard" button + Profile */
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleViewChange('presenter')}
+                    className="group inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#0084FF] hover:bg-[#0074E0] rounded-xl transition-all shadow-sm cursor-pointer"
+                  >
+                    <span>Open Meeting Room</span>
+                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
                   <img
                     src={user.avatarUrl}
                     alt={user.fullName}
-                    className="h-6 w-6 rounded-full border border-slate-200 object-cover"
+                    className="h-8 w-8 rounded-xl border border-slate-200 object-cover"
+                    title={user.fullName}
                   />
-                </button>
+                </div>
+              ) : (
+                /* Inside Dashboard / Meeting: Show Full Settings Gear + Profile + SignOut */
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center gap-2 p-1 pl-2.5 bg-slate-100 hover:bg-slate-200/80 rounded-full border border-slate-200 transition-all text-xs cursor-pointer"
+                    title="Open Settings"
+                  >
+                    <span className="font-semibold text-obsidian hidden sm:inline font-sans">
+                      {user.fullName}
+                    </span>
+                    {user.isPro && (
+                      <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
+                        <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
+                        <span>PRO</span>
+                      </span>
+                    )}
+                    <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
+                      @{user.customSlug}
+                    </span>
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName}
+                      className="h-6 w-6 rounded-full border border-slate-200 object-cover"
+                    />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="p-2 rounded-full text-slate-500 hover:text-obsidian hover:bg-slate-100 transition-all cursor-pointer"
-                  title="Account & Meeting Settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="p-2 rounded-full text-slate-500 hover:text-obsidian hover:bg-slate-100 transition-all cursor-pointer"
+                    title="Account & Meeting Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={signOut}
-                  className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                  title="Sign Out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              )
             ) : (
+              /* Signed Out State: Sign In + Sign Up */
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="hidden sm:inline-flex px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-obsidian cursor-pointer transition-colors font-sans"
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-obsidian cursor-pointer transition-colors font-sans"
                 >
                   Sign In
                 </button>
 
-                {/* Glassy "SignUp" button with arrow icon */}
                 <button
                   type="button"
                   onClick={() => setIsAuthModalOpen(true)}

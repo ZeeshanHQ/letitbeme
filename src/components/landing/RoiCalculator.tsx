@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface RoiCalculatorProps {
@@ -11,15 +11,8 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => 
     <section id="roi-section" className="py-20 sm:py-28 bg-white border-b border-slate-100 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-left">
         
-        {/* Section Header */}
+        {/* Clean Section Header (No Pill Badge) */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50/80 border border-blue-200 text-xs font-semibold text-[#0084FF]">
-            <span className="h-2 w-2 rounded-full bg-[#0084FF] animate-pulse" />
-            <span>Transparent &amp; Flexible Pricing</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-[#0084FF] font-mono">0% Platform Cuts</span>
-          </div>
-
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-[#0f172a] tracking-tight">
             Start Free. Upgrade for{' '}
             <span className="text-[#0084FF]">Only $19.99/month</span>.

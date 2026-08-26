@@ -68,9 +68,6 @@ export const ComparisonSection: React.FC = () => {
         {/* Comparison Matrix Table */}
         <div className="space-y-6 max-w-6xl mx-auto">
           <div className="space-y-2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#0084FF]">
-              Architecture Benchmark
-            </span>
             <h3 className="text-2xl sm:text-3xl font-heading font-medium text-[#0f172a] tracking-tight">
               Why leading software teams choose LetItBeMe
             </h3>
