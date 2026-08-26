@@ -541,23 +541,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           className="absolute inset-0 w-full h-full object-cover mirror"
         />
       ) : (
-        /* 3. CORPORATE MEETING AVATAR */
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        /* 3. AI DIGITAL TWIN HOLOGRAPHIC PRESENCE */
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4 relative overflow-hidden select-none">
           
+          {/* Ambient Holographic Glow & Neural Audio Waveforms */}
+          <div className="absolute w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+          <div className="absolute w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Holographic Avatar with Live Mic Audio Waveforms */}
           <div className="relative">
+            {/* Live Audio Reaction Rings */}
+            {isMicOn && (
+              <>
+                <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
+                <span className="absolute -inset-8 rounded-full border border-blue-500/25 animate-pulse opacity-40 pointer-events-none" />
+                <span className="absolute -inset-12 rounded-full border border-indigo-400/15 animate-ping opacity-20 pointer-events-none" />
+              </>
+            )}
+
             {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={user?.fullName || 'Host'}
                 referrerPolicy="no-referrer"
-                className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover bg-slate-800"
+                className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-[#0084FF] shadow-2xl object-cover bg-slate-800 shadow-blue-500/30"
               />
             ) : (
-              <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
+              <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-blue-900 via-slate-800 to-indigo-900 border-2 border-[#0084FF] shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold shadow-blue-500/30">
                 {(user?.fullName || 'H').charAt(0).toUpperCase()}
               </div>
             )}
 
+            {/* Quick mic status indicator */}
             <div className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
               {isMicOn ? (
                 <Mic className="h-4 w-4 text-emerald-400" />
@@ -565,6 +580,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 <MicOff className="h-4 w-4 text-rose-500" />
               )}
             </div>
+          </div>
+
+          {/* AI Digital Twin Presence Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-500/40 text-[#60B1FF] text-[10px] font-mono font-bold shadow-lg backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#0084FF] animate-pulse" />
+            <span>AI DIGITAL TWIN • VOICE PRESENCE ACTIVE</span>
           </div>
 
           <div className="relative z-10 flex items-center gap-2 max-w-md">
@@ -627,7 +648,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           </div>
 
           <p className="text-[11px] font-mono text-slate-400">
-            Camera is off • Turn on video in the meeting dock below
+            {isMicOn ? 'Broadcasting live audio mesh • Turn on webcam anytime in dock below' : 'Microphone is muted • Unmute below to broadcast audio'}
           </p>
         </div>
       )}
