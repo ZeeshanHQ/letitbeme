@@ -61,6 +61,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     toggleAiTranslation,
     currentLanguage,
     setLanguage,
+    requestJoinRoom,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -224,28 +225,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }, 600);
   };
 
-  const handleGuestKnock = () => {
+  const handleGuestKnock = async () => {
     if (!guestName.trim()) return;
     setIsConnecting(true);
-    
-    // Broadcast knock to host
-    const bc = new BroadcastChannel('letitbeme_stream_sync');
-    const myGuestId = `guest_${Date.now()}`;
-    bc.postMessage({
-      type: 'KNOCK_JOIN',
-      payload: {
-        id: myGuestId,
-        name: guestName.trim(),
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guestName.trim())}`,
-        joinedAt: 'Just now',
-      },
-    });
-
+    await requestJoinRoom(guestName.trim());
     setTimeout(() => {
       setIsConnecting(false);
       setHasKnocked(true);
       setIsWaitingInLobby(true);
-    }, 600);
+    }, 400);
   };
 
   const handleSaveName = async (e?: React.FormEvent) => {
@@ -454,8 +442,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </div>
             )}
 
+            {/* Bottom-Left Corner Name Tag (Google Meet & Zoom Standard) */}
+            <div className="absolute bottom-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-black/65 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-2 shadow-lg border border-white/15 max-w-[200px] truncate pointer-events-none">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+              <span className="truncate">{guestName.trim() || 'Your Name'}</span>
+            </div>
+
             {/* Floating Device Controls Overlay at the bottom of the video */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
+            <div className="absolute bottom-4 right-4 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
               <button
                 type="button"
                 onClick={toggleMic}
@@ -573,8 +567,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </div>
             )}
 
+            {/* Bottom-Left Corner Name Tag (Google Meet & Zoom Standard) */}
+            <div className="absolute bottom-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-black/65 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-2 shadow-lg border border-white/15 max-w-[200px] truncate pointer-events-none">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+              <span className="truncate">{user?.fullName || 'Host Presenter'}</span>
+            </div>
+
             {/* Floating Device Controls */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
+            <div className="absolute bottom-4 right-4 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 shadow-2xl z-20">
               <button
                 type="button"
                 onClick={toggleMic}

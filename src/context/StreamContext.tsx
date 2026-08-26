@@ -371,8 +371,32 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .subscribe();
     }
 
+    // Cross-tab and cross-profile storage sync listener
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'letitbeme_last_knock' && e.newValue) {
+        try {
+          const { payload } = JSON.parse(e.newValue);
+          handleKnock(payload);
+        } catch {}
+      }
+      if (e.key === 'letitbeme_last_admit' && e.newValue) {
+        try {
+          const { guestId } = JSON.parse(e.newValue);
+          handleAdmit(guestId);
+        } catch {}
+      }
+      if (e.key === 'letitbeme_last_deny' && e.newValue) {
+        try {
+          const { guestId } = JSON.parse(e.newValue);
+          handleDeny(guestId);
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
     return () => {
       bc.close();
+      window.removeEventListener('storage', handleStorage);
       if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     };
   }, []);
@@ -707,24 +731,26 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const guest: WaitingParticipant = {
       id: guestId,
       name: guestName.trim() || 'Guest Attendee',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${guestName}`,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guestName.trim())}`,
       location: loc,
       joinedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    if (requireHostApproval) {
-      setIsWaitingInLobby(true);
-      channel?.postMessage({ type: 'KNOCK_JOIN', payload: guest });
-      if (isSupabaseConfigured) {
-        supabase.channel('letitbeme_room_sync').send({
-          type: 'broadcast',
-          event: 'KNOCK_JOIN',
-          payload: guest,
-        });
-      }
-    } else {
-      setIsWaitingInLobby(false);
-      setViewerCount((prev) => prev + 1);
+    setIsWaitingInLobby(true);
+    
+    // 1. BroadcastChannel (same tab / profile)
+    channel?.postMessage({ type: 'KNOCK_JOIN', payload: guest });
+    
+    // 2. LocalStorage Event (cross-tab in browser)
+    localStorage.setItem('letitbeme_last_knock', JSON.stringify({ payload: guest, ts: Date.now() }));
+
+    // 3. Supabase Realtime (cross-device, mobile phones)
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'KNOCK_JOIN',
+        payload: guest,
+      });
     }
   };
 
@@ -732,6 +758,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     setViewerCount((prev) => prev + 1);
     channel?.postMessage({ type: 'ADMIT_GUEST', payload: { guestId: id } });
+    localStorage.setItem('letitbeme_last_admit', JSON.stringify({ guestId: id, ts: Date.now() }));
     if (isSupabaseConfigured) {
       supabase.channel('letitbeme_room_sync').send({
         type: 'broadcast',
@@ -744,6 +771,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const denyParticipant = (id: string) => {
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     channel?.postMessage({ type: 'DENY_GUEST', payload: { guestId: id } });
+    localStorage.setItem('letitbeme_last_deny', JSON.stringify({ guestId: id, ts: Date.now() }));
     if (isSupabaseConfigured) {
       supabase.channel('letitbeme_room_sync').send({
         type: 'broadcast',
