@@ -16,12 +16,11 @@ import {
   Radio,
   PhoneOff,
   PictureInPicture2,
-  Crown,
-  Copy,
   UserCheck,
   UserX,
-  Bell,
-  RotateCcw,
+  Play,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -55,10 +54,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
   const { user, updateProfile } = useAuth();
 
+  const [isMeetingStarted, setIsMeetingStarted] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(0.85);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   // Real-time editable host name and slug
   const [isEditingName, setIsEditingName] = useState(false);
@@ -74,6 +74,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   }, [user?.fullName, user?.customSlug]);
 
+  const handleStartMeeting = () => {
+    setIsConnecting(true);
+    setTimeout(() => {
+      setIsConnecting(false);
+      setIsMeetingStarted(true);
+    }, 850);
+  };
+
   const handleSaveName = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsEditingName(false);
@@ -83,13 +91,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         customSlug: editSlug.trim().replace(/[^a-zA-Z0-9-_]/g, '') || 'live',
       });
     }
-  };
-
-  const handleCopyMeetingLink = () => {
-    const url = `${window.location.origin}/?room=${user?.customSlug || 'live'}`;
-    navigator.clipboard.writeText(url);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,7 +110,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     return `${hrs > 0 ? `${hrs}:` : ''}${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Bind local camera stream
+  // Bind camera stream
   useEffect(() => {
     if (camVideoRef.current && localCamStream) {
       camVideoRef.current.srcObject = localCamStream;
@@ -219,7 +220,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   };
 
-  // If Guest is currently waiting in lobby
+  // 1. GUEST WAITING ROOM LOBBY
   if (isWaitingInLobby) {
     return (
       <div className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
@@ -249,6 +250,100 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     );
   }
 
+  // 2. PRE-MEETING GREEN ROOM ("Ready to meet?")
+  if (!isMeetingStarted) {
+    return (
+      <div className="relative w-full h-full min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
+        
+        {/* Avatar / Device Check Circle */}
+        <div className="relative">
+          {user?.avatarUrl && !user.avatarUrl.includes('dicebear') ? (
+            <img
+              src={user.avatarUrl}
+              alt={user?.fullName || 'Host'}
+              className="h-28 w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover"
+            />
+          ) : (
+            <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
+              {(user?.fullName || 'H').charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          {/* Quick mic status indicator */}
+          <div className="absolute bottom-0 right-0 p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
+            {isMicOn ? <Mic className="h-4 w-4 text-emerald-400" /> : <MicOff className="h-4 w-4 text-rose-500" />}
+          </div>
+        </div>
+
+        <div className="space-y-1 max-w-md">
+          <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
+            Ready to join the meeting?
+          </h3>
+          <p className="text-xs text-slate-400">
+            Broadcasting as <strong className="text-white">{user?.fullName || 'Host Presenter'}</strong> (@{user?.customSlug || 'live'})
+          </p>
+        </div>
+
+        {/* Device Pre-Check Controls */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleMic}
+            className={`p-3 rounded-full border transition-all cursor-pointer ${
+              isMicOn
+                ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700'
+                : 'bg-rose-600 border-rose-600 text-white'
+            }`}
+            title={isMicOn ? 'Microphone is on' : 'Microphone is muted'}
+          >
+            {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleCam}
+            className={`p-3 rounded-full border transition-all cursor-pointer ${
+              isCamOn
+                ? 'bg-[#0084FF] border-[#0084FF] text-white hover:bg-[#0074E0]'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+            title={isCamOn ? 'Camera is on' : 'Camera is off'}
+          >
+            {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          </button>
+        </div>
+
+        {/* Start Meeting Button */}
+        <button
+          type="button"
+          disabled={isConnecting}
+          onClick={handleStartMeeting}
+          className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:scale-[1.02] cursor-pointer shadow-lg shadow-blue-500/20"
+          style={{
+            backgroundColor: 'rgba(0, 132, 255, 0.92)',
+            backdropFilter: 'blur(2px)',
+            borderRadius: '16px',
+            boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 8px 20px rgba(0, 132, 255, 0.3)',
+          }}
+        >
+          {isConnecting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Connecting WebRTC Mesh...</span>
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4 fill-white" />
+              <span>Start Meeting Now</span>
+            </>
+          )}
+        </button>
+
+      </div>
+    );
+  }
+
+  // 3. LIVE MEETING STAGE
   return (
     <div
       ref={containerRef}
@@ -291,7 +386,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           className="absolute inset-0 w-full h-full object-cover mirror"
         />
       ) : (
-        /* 3. HIGH-END CORPORATE MEETING AVATAR */
+        /* 3. CORPORATE MEETING AVATAR */
         <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4">
           
           <div className="relative">
@@ -421,7 +516,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       )}
 
-      {/* Top Meeting Status Bar */}
+      {/* Top Meeting Status Bar (Clean & Focused) */}
       <div className="relative z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-mono">
@@ -433,34 +528,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             <Users className="h-3 w-3 text-slate-400" />
             <span>{viewerCount}</span>
           </span>
-
-          {/* Quick Copy Meeting Link Pill */}
-          <div className="flex items-center bg-[#0084FF]/80 backdrop-blur-md rounded-full border border-white/20 shadow-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={handleCopyMeetingLink}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-white hover:bg-[#0084FF] px-3 py-1 cursor-pointer transition-all"
-              title="Copy Meeting Link"
-            >
-              {linkCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
-              <span className="hidden sm:inline">{linkCopied ? 'Link Copied' : 'Copy Link'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={async () => {
-                await updateProfile({
-                  customSlug: `room-${Math.random().toString(36).substring(2, 6)}`,
-                });
-                setLinkCopied(true);
-                setTimeout(() => setLinkCopied(false), 2000);
-              }}
-              className="p-1 px-2 text-white/80 hover:text-white hover:bg-[#0084FF] border-l border-white/20 transition-all cursor-pointer"
-              title="Rotate / Generate New Link"
-            >
-              <RotateCcw className="h-3 w-3" />
-            </button>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -547,10 +614,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
             </button>
 
-            {/* End Call / Leave */}
+            {/* Leave / Return to Green Room */}
             <button
               type="button"
-              onClick={toggleLiveStatus}
+              onClick={() => {
+                setIsMeetingStarted(false);
+                toggleLiveStatus();
+              }}
               className="p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30"
             >
               <PhoneOff className="h-4 w-4" />
