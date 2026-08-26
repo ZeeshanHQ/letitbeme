@@ -8,6 +8,7 @@ import { PresenterStudio } from './components/presenter/PresenterStudio';
 import { ReferralDashboard } from './components/dashboard/ReferralDashboard';
 import { InactivityTimeoutModal } from './components/common/InactivityTimeoutModal';
 import { AuthModal } from './components/auth/AuthModal';
+import { trackReferralClick } from './lib/referral';
 
 const AppContent: React.FC = () => {
   // Initialize view from URL param, saved localStorage, or active user
@@ -54,6 +55,11 @@ const AppContent: React.FC = () => {
     if (viewParam && ['landing', 'stage', 'presenter', 'referral'].includes(viewParam)) {
       setCurrentView(viewParam);
       if (viewParam === 'presenter') setIsPresenterRole(true);
+    }
+
+    const refParam = params.get('ref');
+    if (refParam) {
+      trackReferralClick(refParam);
     }
   }, [setIsPresenterRole]);
 

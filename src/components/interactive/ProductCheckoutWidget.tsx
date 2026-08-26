@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
+import { recordReferralSale } from '../../lib/referral';
 
 export const ProductCheckoutWidget: React.FC = () => {
   const { triggerCheckoutCelebration, offerTitle, offerPrice } = useStream();
@@ -43,6 +44,7 @@ export const ProductCheckoutWidget: React.FC = () => {
         checkoutUrl.searchParams.set('prefilled_email', user.email);
       }
       window.open(checkoutUrl.toString(), '_blank');
+      await recordReferralSale(Number(offerPrice || 19.99), userEmail);
       setHasPurchasedHostOffer(true);
       triggerCheckoutCelebration();
       setIsProcessing(false);
@@ -50,6 +52,7 @@ export const ProductCheckoutWidget: React.FC = () => {
     }
 
     // Direct in-stream purchase simulation
+    await recordReferralSale(Number(offerPrice || 19.99), userEmail);
     setTimeout(() => {
       setHasPurchasedHostOffer(true);
       triggerCheckoutCelebration();
