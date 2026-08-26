@@ -249,7 +249,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
 
                   <button
                     type="button"
-                    onClick={signOut}
+                    onClick={() => {
+                      signOut();
+                      handleViewChange('landing');
+                    }}
                     className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
                     title="Sign Out"
                   >
