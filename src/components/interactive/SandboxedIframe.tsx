@@ -8,11 +8,16 @@ import {
   PenTool,
   ShieldCheck,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const SandboxedIframe: React.FC = () => {
-  const { customEmbedUrl, setCustomEmbedUrl, meetingNotes, setMeetingNotes } = useStream();
+  const { customEmbedUrl, setCustomEmbedUrl, meetingNotes, setMeetingNotes, isPresenterRole } = useStream();
+  const { user } = useAuth();
+
+  const isHost = user?.role === 'host' || isPresenterRole;
   const [activeTool, setActiveTool] = useState<'notes' | 'whiteboard' | 'custom_url'>('notes');
   const [copied, setCopied] = useState(false);
 
@@ -114,22 +119,29 @@ export const SandboxedIframe: React.FC = () => {
       {/* Main Workspace Body */}
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 flex flex-col">
         {activeTool === 'notes' && (
-          /* Live Shared Notes Editor */
+          /* Live Shared Notes Editor / Viewer */
           <div className="flex-1 flex flex-col space-y-2">
             <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-              <span>Live Synchronized Meeting Notes (Markdown)</span>
+              <span>{isHost ? 'Live Synchronized Meeting Notes (Markdown Editor)' : 'Host Synchronized Agenda & Notes'}</span>
               <span className="flex items-center gap-1 text-emerald-600 font-mono">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Sync
               </span>
             </div>
 
-            <textarea
-              value={meetingNotes}
-              onChange={(e) => setMeetingNotes(e.target.value)}
-              placeholder="Take meeting notes, write bullet points, or list action items here in real-time..."
-              className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed focus:outline-none focus:border-[#0084FF] shadow-sm resize-none"
-            />
+            {isHost ? (
+              <textarea
+                value={meetingNotes}
+                onChange={(e) => setMeetingNotes(e.target.value)}
+                placeholder="Take meeting notes, write bullet points, or list action items here in real-time..."
+                className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed focus:outline-none focus:border-[#0084FF] shadow-sm resize-none"
+              />
+            ) : (
+              /* Read-only view for Attendees */
+              <div className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed shadow-sm overflow-y-auto whitespace-pre-wrap select-text">
+                {meetingNotes || 'No notes added yet by host.'}
+              </div>
+            )}
           </div>
         )}
 
@@ -157,18 +169,20 @@ export const SandboxedIframe: React.FC = () => {
         {activeTool === 'custom_url' && (
           /* Custom Embed URL */
           <div className="flex-1 flex flex-col space-y-3">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700">
-                Embed Web URL
-              </label>
-              <input
-                type="url"
-                value={customEmbedUrl}
-                onChange={(e) => setCustomEmbedUrl(e.target.value)}
-                placeholder="https://excalidraw.com or https://cal.com/yourname"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-[#0084FF] font-mono"
-              />
-            </div>
+            {isHost && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Embed Web URL (Host Control)
+                </label>
+                <input
+                  type="url"
+                  value={customEmbedUrl}
+                  onChange={(e) => setCustomEmbedUrl(e.target.value)}
+                  placeholder="https://excalidraw.com or https://cal.com/yourname"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-[#0084FF] font-mono"
+                />
+              </div>
+            )}
 
             <div className="flex-1 min-h-[300px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner">
               <iframe

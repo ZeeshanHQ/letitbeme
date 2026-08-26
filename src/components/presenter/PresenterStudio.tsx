@@ -29,6 +29,10 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
   const [copiedLink, setCopiedLink] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
 
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
   const streamHandle = user?.customSlug || 'live';
   const publicStreamUrl = `${window.location.origin}/?room=${streamHandle}`;
 

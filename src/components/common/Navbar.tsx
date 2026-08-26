@@ -27,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
 
   const handleViewChange = (view: AppView) => {
     setCurrentView(view);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     const url = new URL(window.location.href);
     if (view === 'landing') {
       url.searchParams.delete('view');
