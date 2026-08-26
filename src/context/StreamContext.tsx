@@ -66,6 +66,17 @@ export interface AgendaItem {
   isDone: boolean;
 }
 
+export interface JoinedParticipant {
+  id: string;
+  name: string;
+  avatar?: string;
+  isHost?: boolean;
+  isCamOn?: boolean;
+  isMicOn?: boolean;
+  isSpeaking?: boolean;
+  audioLevel?: number;
+}
+
 export interface WaitingParticipant {
   id: string;
   name: string;
@@ -88,6 +99,8 @@ export interface StreamState {
   layoutMode: LayoutMode;
   activeWidget: InteractiveWidgetType;
   customEmbedUrl: string;
+  joinedParticipants: JoinedParticipant[];
+  activeSpeakerId: string | null;
   meetingNotes: string;
   productOffer: ProductOffer;
   offerPrice: number;
@@ -305,6 +318,19 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     ctaText: 'Subscribe — Only $19.99/month',
   });
 
+  // Joined Multi-Participant State (Zoom & Google Meet Gallery)
+  const [joinedParticipants, setJoinedParticipants] = useState<JoinedParticipant[]>([
+    {
+      id: 'host-1',
+      name: hostName || presenterName || 'Host Presenter',
+      avatar: undefined,
+      isHost: true,
+      isCamOn: false,
+      isMicOn: true,
+      isSpeaking: true,
+    },
+  ]);
+  const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>('host-1');
   const [pollData, setPollData] = useState<PollData | null>(null);
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
 
@@ -321,12 +347,30 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     };
 
-    const handleAdmit = (guestId: string) => {
+    const handleAdmit = (guestId: string, guestObj?: WaitingParticipant) => {
       if (guestId === myGuestIdRef.current) {
         setIsWaitingInLobby(false);
         setIsGuestJoined(true);
       }
       setViewerCount((prev) => prev + 1);
+
+      setJoinedParticipants((prev) => {
+        if (prev.some((p) => p.id === guestId)) return prev;
+        const name = guestObj?.name || 'Attendee';
+        const avatar = guestObj?.avatar;
+        return [
+          ...prev,
+          {
+            id: guestId,
+            name,
+            avatar,
+            isHost: false,
+            isCamOn: false,
+            isMicOn: true,
+            isSpeaking: false,
+          },
+        ];
+      });
     };
 
     const handleDeny = (guestId: string) => {
@@ -350,9 +394,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'SYNC_LANG') setCurrentLanguageState(payload);
       if (type === 'SYNC_MSG') setMessages((prev) => [...prev, payload]);
       if (type === 'SYNC_SUBTITLE') setLatestSubtitle(payload);
+      if (type === 'SYNC_JOINED_PARTICIPANTS') setJoinedParticipants(payload);
       if (type === 'SYNC_LIVE_STATUS') setIsLive(payload);
       if (type === 'KNOCK_JOIN') handleKnock(payload);
-      if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId);
+      if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId, payload.guest);
       if (type === 'DENY_GUEST') handleDeny(payload.guestId);
     };
 
@@ -797,6 +842,8 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         layoutMode,
         activeWidget,
         customEmbedUrl,
+        joinedParticipants,
+        activeSpeakerId,
         meetingNotes,
         productOffer,
         offerPrice: productOffer.price,

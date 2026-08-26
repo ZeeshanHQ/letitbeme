@@ -30,6 +30,7 @@ import { useAuth } from '../../context/AuthContext';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { PostMeetingProModal } from '../common/PostMeetingProModal';
 import { RecordingDownloadModal } from './RecordingDownloadModal';
+import { ParticipantGrid } from './ParticipantGrid';
 import { SUPPORTED_LANGUAGES } from '../../data/mockData';
 
 interface VideoPlayerProps {
@@ -62,9 +63,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     currentLanguage,
     setLanguage,
     requestJoinRoom,
+    joinedParticipants,
+    activeSpeakerId,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
+
+  const [pinnedSpeakerId, setPinnedSpeakerId] = useState<string | null>(null);
 
   const [isMeetingStarted, setIsMeetingStarted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -713,114 +718,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             </div>
           )}
         </div>
-      ) : isCamOn && localCamStream ? (
-        /* 2. REAL CAMERA VIDEO FEED (Mirrored Horizontally for Natural Self-View) */
-        <video
-          ref={camVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 w-full h-full object-cover scale-x-[-1] transform"
-        />
       ) : (
-        /* 3. AVATAR STAGE PRESENCE */
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4 relative overflow-hidden select-none">
-          
-          {/* Ambient Glow */}
-          <div className="absolute w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-          <div className="absolute w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Avatar with Live Mic Audio Waveforms */}
-          <div className="relative">
-            {isMicOn && (
-              <>
-                <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
-                <span className="absolute -inset-8 rounded-full border border-blue-500/25 animate-pulse opacity-40 pointer-events-none" />
-                <span className="absolute -inset-12 rounded-full border border-indigo-400/15 animate-ping opacity-20 pointer-events-none" />
-              </>
-            )}
-
-            {user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user?.fullName || 'Host'}
-                referrerPolicy="no-referrer"
-                className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-[#0084FF] shadow-2xl object-cover bg-slate-800 shadow-blue-500/30"
-              />
-            ) : (
-              <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-blue-900 via-slate-800 to-indigo-900 border-2 border-[#0084FF] shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold shadow-blue-500/30">
-                {(user?.fullName || 'H').charAt(0).toUpperCase()}
-              </div>
-            )}
-
-            {/* Mic Status Indicator */}
-            <div className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
-              {isMicOn ? (
-                <Mic className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <MicOff className="h-4 w-4 text-rose-500" />
-              )}
-            </div>
-          </div>
-
-          <div className="relative z-10 flex items-center gap-2 max-w-md">
-            {showHostControls && isEditingName ? (
-              <form onSubmit={handleSaveName} className="flex flex-wrap items-center gap-1.5 bg-slate-900/95 p-2 rounded-2xl border border-[#0084FF] shadow-2xl">
-                <input
-                  type="text"
-                  autoFocus
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Your Name"
-                  className="bg-slate-800 text-white text-xs font-bold px-2.5 py-1 rounded-xl outline-none font-sans w-32 border border-slate-700"
-                />
-                <div className="flex items-center bg-slate-800 px-2 py-1 rounded-xl text-xs text-slate-300 font-mono border border-slate-700">
-                  <span>@</span>
-                  <input
-                    type="text"
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
-                    placeholder="handle"
-                    className="bg-transparent text-[#0084FF] font-bold outline-none font-mono w-24 pl-0.5"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="p-1.5 rounded-xl bg-[#0084FF] text-white hover:bg-[#0074E0] cursor-pointer"
-                  title="Save changes"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingName(false)}
-                  className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-                  title="Cancel"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </form>
-            ) : (
-              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/95 border border-white/20 text-white shadow-lg backdrop-blur-md">
-                <span className="text-xs font-bold text-white font-heading tracking-tight">
-                  {user?.fullName || 'Host Presenter'}
-                </span>
-                <span className="text-[11px] font-mono text-[#0084FF] font-bold">
-                  @{user?.customSlug || 'live'}
-                </span>
-                {showHostControls && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingName(true)}
-                    className="p-0.5 text-slate-300 hover:text-[#0084FF] cursor-pointer"
-                    title="Rename display name & handle"
-                  >
-                    <Edit2 className="h-3 w-3 ml-0.5" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+        /* 2. DYNAMIC MULTI-PARTICIPANT RESPONSIVE GALLERY GRID (Zoom & Google Meet Standard) */
+        <div className="absolute inset-0 w-full h-full">
+          <ParticipantGrid
+            participants={joinedParticipants}
+            activeSpeakerId={activeSpeakerId}
+            isCamOn={isCamOn}
+            localCamStream={localCamStream}
+            camVideoRef={camVideoRef}
+            showHostControls={showHostControls}
+            pinnedSpeakerId={pinnedSpeakerId}
+            onPinSpeaker={(id) => setPinnedSpeakerId(id === pinnedSpeakerId ? null : id)}
+          />
         </div>
       )}
 
