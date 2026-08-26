@@ -9,8 +9,8 @@ import {
   Tag,
   User,
   X,
+  ArrowRight,
 } from 'lucide-react';
-import { Button } from '../common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
@@ -27,16 +27,27 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [ambassadorName, setAmbassadorName] = useState('');
-  const [role, setRole] = useState('');
   const [code, setCode] = useState('');
   const [commissionRate, setCommissionRate] = useState('15');
   const [isCreated, setIsCreated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const generatedSlug = (code.trim() || ambassadorName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'promo').toLowerCase();
-  const generatedUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}&ref=${generatedSlug}`;
+  const derivedSlug = (
+    code.trim() ||
+    ambassadorName.toLowerCase().replace(/[^a-z0-9]/g, '-') ||
+    'promo'
+  ).toLowerCase();
+
+  const generatedUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}&ref=${derivedSlug}`;
+
+  const handleCopyPreview = () => {
+    navigator.clipboard.writeText(generatedUrl);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +63,7 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
           host_id: user?.id || 'host',
           ambassador_name: ambassadorName.trim() || 'Direct Campaign',
           ambassador_email: user?.email || '',
-          ref_slug: generatedSlug,
+          ref_slug: derivedSlug,
           commission_percent: commissionPercent,
           total_clicks: 0,
           total_sales: 0,
@@ -75,7 +86,7 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans select-none">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-slide-up text-left">
         
         {/* Header */}
@@ -102,13 +113,24 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
           </button>
         </div>
 
-        {/* Live Link Preview */}
-        <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-1">
+        {/* Live Link Preview Box with Copy Button */}
+        <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-1.5">
           <span className="text-[11px] font-mono font-bold text-[#0084FF] block">
-            Generated Referral URL
+            Generated Referral URL (Live Preview)
           </span>
-          <div className="text-xs font-mono text-slate-800 bg-white px-3 py-2 rounded-xl border border-blue-200 truncate select-all">
-            {generatedUrl}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 text-xs font-mono text-slate-800 bg-white px-3 py-2 rounded-xl border border-blue-200 truncate select-all">
+              {generatedUrl}
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyPreview}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-blue-200 hover:bg-blue-100/50 text-[#0084FF] flex items-center gap-1 cursor-pointer transition-all shrink-0"
+              title="Copy Preview URL"
+            >
+              {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>{isCopied ? 'Copied' : 'Copy'}</span>
+            </button>
           </div>
         </div>
 
@@ -122,7 +144,12 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
               type="text"
               required
               value={ambassadorName}
-              onChange={(e) => setAmbassadorName(e.target.value)}
+              onChange={(e) => {
+                setAmbassadorName(e.target.value);
+                if (!code) {
+                  setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''));
+                }
+              }}
               placeholder="e.g. YouTube Masterclass Review"
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
             />
@@ -131,7 +158,7 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Custom Referral Slug
+                Custom Referral Slug (?ref=)
               </label>
               <input
                 type="text"
@@ -168,15 +195,14 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
               Cancel
             </button>
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="sm"
               disabled={isLoading}
-              className="bg-[#0084FF]"
+              className="px-5 py-2.5 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer transition-all disabled:opacity-50"
             >
               {isLoading ? 'Creating...' : isCreated ? 'Created!' : 'Create Tracking Link'}
-            </Button>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </form>
 
