@@ -58,6 +58,12 @@ export interface PollData {
   userSelectedOption: string | null;
 }
 
+export interface AgendaItem {
+  id: string;
+  title: string;
+  isDone: boolean;
+}
+
 export interface WaitingParticipant {
   id: string;
   name: string;
@@ -85,6 +91,7 @@ export interface StreamState {
   offerPrice: number;
   offerTitle: string;
   pollData: PollData | null;
+  agenda: AgendaItem[];
   isPresenterRole: boolean;
   isMicOn: boolean;
   isCamOn: boolean;
@@ -120,6 +127,10 @@ interface StreamContextType extends StreamState {
   createPoll: (question: string, optionTexts: string[]) => void;
   resetPoll: () => void;
   deletePoll: () => void;
+  toggleAgendaItem: (id: string) => void;
+  addAgendaItem: (title: string) => void;
+  deleteAgendaItem: (id: string) => void;
+  setAgenda: (items: AgendaItem[]) => void;
   toggleMic: () => void;
   toggleCam: () => void;
   toggleScreenShare: () => void;
@@ -206,6 +217,12 @@ async function getAttendeeLocation(): Promise<string> {
   }
 }
 
+const DEFAULT_AGENDA: AgendaItem[] = [
+  { id: '1', title: '1. Welcome & Meeting Overview', isDone: false },
+  { id: '2', title: '2. Live Demo & Interactive Review', isDone: false },
+  { id: '3', title: '3. Q&A & Action Items', isDone: false },
+];
+
 export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLive, setIsLive] = useState(false);
   const [streamId] = useState('stream-masterclass-2026');
@@ -223,6 +240,15 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [meetingNotes, setMeetingNotesState] = useState<string>(
     '# Meeting Notes\n\n- Welcome to the executive room.\n- Capture action items, bullet points, and live decisions here.\n- All participants can view synchronized notes in real-time.'
   );
+
+  // Agenda State with Local Storage & Realtime Sync
+  const [agenda, setAgendaState] = useState<AgendaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('letitbeme_agenda');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_AGENDA;
+  });
   
   const [isPresenterRole, setIsPresenterRole] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -311,6 +337,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'SYNC_NOTES') setMeetingNotesState(payload);
       if (type === 'SYNC_OFFER') setProductOffer(payload);
       if (type === 'SYNC_POLL') setPollData(payload);
+      if (type === 'SYNC_AGENDA') {
+        setAgendaState(payload);
+        localStorage.setItem('letitbeme_agenda', JSON.stringify(payload));
+      }
       if (type === 'SYNC_LANG') setCurrentLanguageState(payload);
       if (type === 'SYNC_MSG') setMessages((prev) => [...prev, payload]);
       if (type === 'SYNC_LIVE_STATUS') setIsLive(payload);
@@ -327,6 +357,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
         .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId))
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
+        .on('broadcast', { event: 'SYNC_AGENDA' }, (event) => {
+          setAgendaState(event.payload);
+          localStorage.setItem('letitbeme_agenda', JSON.stringify(event.payload));
+        })
         .subscribe();
     }
 
@@ -344,6 +378,40 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, 1000);
     return () => clearInterval(interval);
   }, [isLive]);
+
+  // Agenda synchronization helpers
+  const broadcastAgenda = (newAgenda: AgendaItem[]) => {
+    setAgendaState(newAgenda);
+    localStorage.setItem('letitbeme_agenda', JSON.stringify(newAgenda));
+    channel?.postMessage({ type: 'SYNC_AGENDA', payload: newAgenda });
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'SYNC_AGENDA',
+        payload: newAgenda,
+      });
+    }
+  };
+
+  const toggleAgendaItem = (id: string) => {
+    const next = agenda.map((item) => (item.id === id ? { ...item, isDone: !item.isDone } : item));
+    broadcastAgenda(next);
+  };
+
+  const addAgendaItem = (title: string) => {
+    if (!title.trim()) return;
+    const next = [...agenda, { id: `agenda-${Date.now()}`, title: title.trim(), isDone: false }];
+    broadcastAgenda(next);
+  };
+
+  const deleteAgendaItem = (id: string) => {
+    const next = agenda.filter((item) => item.id !== id);
+    broadcastAgenda(next);
+  };
+
+  const setAgenda = (items: AgendaItem[]) => {
+    broadcastAgenda(items);
+  };
 
   const setCustomEmbedUrl = (url: string) => {
     setCustomEmbedUrlState(url);
@@ -645,6 +713,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         offerPrice: productOffer.price,
         offerTitle: productOffer.name,
         pollData,
+        agenda,
         isPresenterRole,
         isMicOn,
         isCamOn,
@@ -677,6 +746,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         createPoll,
         resetPoll,
         deletePoll,
+        toggleAgendaItem,
+        addAgendaItem,
+        deleteAgendaItem,
+        setAgenda,
         toggleMic,
         toggleCam,
         toggleScreenShare,

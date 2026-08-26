@@ -11,7 +11,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useStream } from '../../context/StreamContext';
+import { useStream, AgendaItem } from '../../context/StreamContext';
 
 interface QAItem {
   id: string;
@@ -23,18 +23,18 @@ interface QAItem {
   time: string;
 }
 
-interface AgendaItem {
-  id: string;
-  title: string;
-  isDone: boolean;
-}
-
 export const LeadCaptureWidget: React.FC = () => {
   const { user } = useAuth();
-  const { isPresenterRole } = useStream();
+  const {
+    isPresenterRole,
+    agenda,
+    toggleAgendaItem,
+    addAgendaItem,
+    deleteAgendaItem,
+  } = useStream();
   const isHost = user?.role === 'host' || isPresenterRole;
 
-  const [activeSubTab, setActiveSubTab] = useState<'qa' | 'agenda'>('agenda');
+  const [activeSubTab, setActiveSubTab] = useState<'agenda' | 'qa'>('agenda');
 
   // Live Q&A questions state (Clean initial state: ZERO fake questions)
   const [newQuestion, setNewQuestion] = useState('');
@@ -42,11 +42,6 @@ export const LeadCaptureWidget: React.FC = () => {
 
   // Meeting Agenda state
   const [newAgendaItem, setNewAgendaItem] = useState('');
-  const [agenda, setAgenda] = useState<AgendaItem[]>([
-    { id: '1', title: '1. Welcome & Meeting Overview', isDone: true },
-    { id: '2', title: '2. Live Demo & Interactive Review', isDone: false },
-    { id: '3', title: '3. Q&A & Action Items', isDone: false },
-  ]);
 
   const handlePostQuestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,26 +88,11 @@ export const LeadCaptureWidget: React.FC = () => {
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
-  const handleAddAgendaItem = (e: React.FormEvent) => {
+  const handleAddAgenda = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isHost || !newAgendaItem.trim()) return;
-    setAgenda([
-      ...agenda,
-      { id: `agenda-${Date.now()}`, title: newAgendaItem.trim(), isDone: false },
-    ]);
+    addAgendaItem(newAgendaItem.trim());
     setNewAgendaItem('');
-  };
-
-  const handleToggleAgenda = (id: string) => {
-    if (!isHost) return;
-    setAgenda(
-      agenda.map((item) => (item.id === id ? { ...item, isDone: !item.isDone } : item))
-    );
-  };
-
-  const handleDeleteAgenda = (id: string) => {
-    if (!isHost) return;
-    setAgenda(agenda.filter((item) => item.id !== id));
   };
 
   const completedCount = agenda.filter((i) => i.isDone).length;
@@ -242,12 +222,12 @@ export const LeadCaptureWidget: React.FC = () => {
             {agenda.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm"
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm transition-all"
               >
                 {isHost ? (
                   <button
                     type="button"
-                    onClick={() => handleToggleAgenda(item.id)}
+                    onClick={() => toggleAgendaItem(item.id)}
                     className="flex items-center gap-3 text-left cursor-pointer flex-1"
                   >
                     <div
@@ -260,7 +240,7 @@ export const LeadCaptureWidget: React.FC = () => {
                       {item.isDone && <CheckCircle2 className="h-3.5 w-3.5" />}
                     </div>
                     <span
-                      className={`text-xs font-semibold ${
+                      className={`text-xs font-semibold transition-all ${
                         item.isDone ? 'line-through text-slate-400' : 'text-slate-800'
                       }`}
                     >
@@ -268,10 +248,10 @@ export const LeadCaptureWidget: React.FC = () => {
                     </span>
                   </button>
                 ) : (
-                  /* Member Read-Only View (No Clicking / No Modifying Host Agenda) */
+                  /* Member Read-Only View (Instant Synchronized Realtime View) */
                   <div className="flex items-center gap-3 text-left flex-1 select-none">
                     <div
-                      className={`h-5 w-5 rounded-lg border flex items-center justify-center ${
+                      className={`h-5 w-5 rounded-lg border flex items-center justify-center transition-all ${
                         item.isDone
                           ? 'bg-emerald-500 border-emerald-500 text-white'
                           : 'border-slate-300 bg-slate-50'
@@ -280,7 +260,7 @@ export const LeadCaptureWidget: React.FC = () => {
                       {item.isDone && <CheckCircle2 className="h-3.5 w-3.5" />}
                     </div>
                     <span
-                      className={`text-xs font-semibold ${
+                      className={`text-xs font-semibold transition-all ${
                         item.isDone ? 'line-through text-slate-400' : 'text-slate-800'
                       }`}
                     >
@@ -293,7 +273,7 @@ export const LeadCaptureWidget: React.FC = () => {
                 {isHost && (
                   <button
                     type="button"
-                    onClick={() => handleDeleteAgenda(item.id)}
+                    onClick={() => deleteAgendaItem(item.id)}
                     className="text-slate-300 hover:text-rose-500 p-1 transition-colors cursor-pointer"
                     title="Delete Agenda Item"
                   >
@@ -328,7 +308,7 @@ export const LeadCaptureWidget: React.FC = () => {
           </form>
         ) : isHost ? (
           /* Adding Agenda Items is STRICTLY HOST-ONLY */
-          <form onSubmit={handleAddAgendaItem} className="flex gap-2">
+          <form onSubmit={handleAddAgenda} className="flex gap-2">
             <input
               type="text"
               value={newAgendaItem}
@@ -348,7 +328,7 @@ export const LeadCaptureWidget: React.FC = () => {
         ) : (
           /* Member Indicator */
           <div className="text-center text-[11px] font-mono text-slate-400 py-1">
-            Session Agenda Managed by Host
+            Session Agenda Synchronized Live
           </div>
         )}
       </div>
