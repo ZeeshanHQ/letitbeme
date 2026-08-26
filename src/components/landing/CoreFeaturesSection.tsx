@@ -1,141 +1,239 @@
 import React from 'react';
+import {
+  Sparkles,
+  Zap,
+  CreditCard,
+  Mic,
+  Globe,
+  TrendingUp,
+  Layers,
+  CheckCircle2,
+  Share2,
+  MousePointer2,
+} from 'lucide-react';
 
 export const CoreFeaturesSection: React.FC = () => {
   return (
-    <section className="bg-white py-20 px-5 flex justify-center items-center w-full font-['Plus_Jakarta_Sans',sans-serif]">
-      <div className="c1-container w-full max-w-[1100px] text-center">
-        
-        {/* Header block */}
-        <div className="mb-[50px]">
-          <div
-            className="c1-badge inline-block text-[0.75rem] font-semibold uppercase tracking-[1px] mb-4 bg-gradient-to-r from-[#F5C344] via-[#F28482] to-[#B567C2] bg-clip-text text-transparent"
-          >
-            Core Features
+    <section
+      id="features-section"
+      className="bg-white py-20 sm:py-28 px-4 sm:px-6 lg:px-8 flex justify-center items-center w-full font-['Plus_Jakarta_Sans',sans-serif]"
+    >
+      <div className="w-full max-w-[1240px] text-center">
+        {/* Section Header */}
+        <div className="mb-14 sm:mb-16 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/70 shadow-xs mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-[#0084FF]" />
+            <span className="text-[0.75rem] font-bold uppercase tracking-[1.2px] bg-gradient-to-r from-[#0084FF] via-[#6366F1] to-[#38BDF8] bg-clip-text text-transparent">
+              Core Platform Capabilities
+            </span>
           </div>
-          
-          <h2 className="c1-title text-[2.25rem] md:text-[2.75rem] font-medium text-[#0f172a] tracking-[-0.02em] mb-3 leading-tight font-heading">
-            Built for Speed &amp; Quality
+
+          <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold text-[#0f172a] tracking-tight leading-[1.15]">
+            Built for Speed, Engagement &amp; Direct Revenue
           </h2>
-          
-          <p className="c1-subtitle text-[1.125rem] text-[#64748b] leading-[1.5]">
-            Everything you need to go<br />
-            from idea to image
+
+          <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-normal">
+            Everything you need to turn live stream viewers into active participants, qualified leads, and instant paying customers.
           </p>
         </div>
 
-        {/* 3-Column Grid */}
-        <div className="c1-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 3-Column Modern Feature Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           
-          {/* Card 1 — Smart Prompt Suggestions */}
+          {/* Card 1 — In-Stream 1-Click Checkout */}
           <div
-            className="c1-card c1-card-1 h-[340px] rounded-[20px] flex flex-col justify-end relative overflow-hidden text-left bg-[#F4F8F9] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] border border-slate-100"
+            className="group h-[380px] rounded-[24px] flex flex-col justify-between relative overflow-hidden text-left p-6 sm:p-7 bg-[#F8FAFC] border border-blue-100/90 shadow-[0_10px_30px_-12px_rgba(0,132,255,0.08)] hover:shadow-[0_20px_40px_-15px_rgba(0,132,255,0.18)] hover:border-blue-300 transition-all duration-300"
             style={{
-              background: 'radial-gradient(circle at 50% 0%, #FFB347 0%, #F9ED96 30%, #F4F8F9 60%, #F4F8F9 100%)',
+              background: 'radial-gradient(circle at 50% 0%, rgba(0, 132, 255, 0.18) 0%, rgba(56, 189, 248, 0.08) 45%, #F8FAFC 75%, #F8FAFC 100%)',
             }}
           >
-            {/* Prompt box */}
-            <div className="absolute top-[30px] left-[24px] right-[24px] bg-white rounded-[12px] p-4 text-[0.8rem] text-[#475569] leading-[1.6] shadow-[0_8px_20px_rgba(0,0,0,0.04)] border border-slate-100/80">
-              A bright, high-resolution 3D illustration of a{' '}
-              <span className="c1-blur-text font-semibold bg-gradient-to-r from-[#FFB347] to-[#E5A1F5] bg-clip-text text-transparent">
-                cheerful cartoon
-              </span>{' '}
-              of a{' '}
-              <span className="c1-blur-text font-semibold bg-gradient-to-r from-[#FFB347] to-[#E5A1F5] bg-clip-text text-transparent">
-                girl character
-              </span>{' '}
-              <span className="c1-blur-text font-semibold bg-gradient-to-r from-[#FFB347] to-[#E5A1F5] bg-clip-text text-transparent">
-                centred against a
-              </span>{' '}
-              smooth blue background
+            {/* Top Interactive Representation */}
+            <div className="relative w-full pt-2">
+              {/* Floating Offer Card */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-[0_8px_25px_rgba(0,132,255,0.08)] border border-blue-100/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-[#0084FF] bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200/60">
+                    <Zap className="h-3 w-3 fill-[#0084FF] text-[#0084FF]" />
+                    <span>In-Stream Special</span>
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs text-slate-400 line-through">$99</span>
+                    <span className="text-sm font-bold text-slate-900">$49.00</span>
+                  </div>
+                </div>
+
+                <p className="text-[12.5px] text-slate-600 leading-snug">
+                  Unlock instant workshop access with{' '}
+                  <span className="font-semibold text-[#0084FF]">zero redirect</span> via tokenized{' '}
+                  <span className="font-semibold text-indigo-600">Stripe 1-Click</span>.
+                </p>
+
+                {/* Simulated Instant Pay Button */}
+                <div className="relative pt-1">
+                  <div className="w-full py-2 px-3 bg-gradient-to-r from-[#0084FF] to-[#0066FF] text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 group-hover:scale-[1.02] transition-transform">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    <span>Pay with 1-Click (Apple Pay)</span>
+                  </div>
+
+                  {/* Interactive Cursor Graphic */}
+                  <div className="absolute -bottom-3 right-6 z-10 drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)] group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#0f172a" stroke="#ffffff" strokeWidth="1.5">
+                      <path d="M4 2L20 11L11 13L9 22L4 2Z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* "Add more details" pill button */}
-            <div className="absolute top-[180px] left-[40px] bg-white border border-black px-[14px] py-[5px] rounded-[20px] text-[0.75rem] font-semibold text-[#1e293b] shadow-[0_4px_15px_rgba(0,0,0,0.08)] flex items-center gap-[6px]">
-              <span className="text-[#a855f7] text-[1rem] leading-none">✦</span>
-              <span>Add more details</span>
+            {/* Bottom Card Title & Subtitle */}
+            <div className="pt-4 z-10 space-y-1">
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>In-Stream 1-Click Checkout</span>
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-light">
+                Viewers purchase products, book consults, or unlock access directly inside the video stream with zero checkout drop-off.
+              </p>
             </div>
-
-            {/* Cursor SVG arrow */}
-            <div className="absolute top-[205px] left-[110px] z-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.2)]">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f172a" stroke="#ffffff" strokeWidth="1">
-                <path d="M4 2L20 11L11 13L9 22L4 2Z" />
-              </svg>
-            </div>
-
-            <h3 className="text-[1.05rem] font-semibold text-[#1e293b] p-6 z-[2]">
-              Smart Prompt Suggestions
-            </h3>
           </div>
 
-          {/* Card 2 — API Access */}
+          {/* Card 2 — Real-Time AI Multilingual Audio */}
           <div
-            className="c1-card c1-card-2 h-[340px] rounded-[20px] flex flex-col justify-end relative overflow-hidden text-left bg-[#F4F8F9] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] border border-slate-100"
+            className="group h-[380px] rounded-[24px] flex flex-col justify-between relative overflow-hidden text-left p-6 sm:p-7 bg-[#F8FAFC] border border-purple-100/90 shadow-[0_10px_30px_-12px_rgba(147,51,234,0.08)] hover:shadow-[0_20px_40px_-15px_rgba(147,51,234,0.18)] hover:border-purple-300 transition-all duration-300"
             style={{
-              background: 'radial-gradient(circle at 50% 0%, #E5A1F5 0%, #F8ACA0 30%, #F4F8F9 60%, #F4F8F9 100%)',
+              background: 'radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.16) 0%, rgba(99, 102, 241, 0.08) 45%, #F8FAFC 75%, #F8FAFC 100%)',
             }}
           >
-            <div className="c1-api-visual absolute top-0 left-0 right-0 bottom-[70px] flex items-center justify-center px-6">
-              <img
-                src="https://pub-f170a2592d2c4a1485466404c36807be.r2.dev/viktor/network.svg"
-                alt="API Network Access"
-                className="c1-network-img w-full h-[180px] object-contain mt-5"
-                onError={(e) => {
-                  // Fallback visual diagram if CDN SVG is unreachable
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
+            {/* Top Interactive Representation */}
+            <div className="relative w-full pt-2">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-[0_8px_25px_rgba(147,51,234,0.08)] border border-purple-100/80 space-y-3">
+                {/* Audio Neural Header */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200/60">
+                    <Mic className="h-3 w-3 text-purple-600 animate-pulse" />
+                    <span>Neural Audio Model</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-emerald-600 font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    &lt;120ms Latency
+                  </span>
+                </div>
+
+                {/* Multi-language synchronization chips */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between bg-slate-50/90 rounded-lg px-2.5 py-1.5 text-[11.5px] border border-slate-200/60">
+                    <div className="flex items-center gap-2">
+                      <span>🇺🇸</span>
+                      <span className="font-semibold text-slate-800">English (Host)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">Master Source</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-purple-50/70 rounded-lg px-2.5 py-1.5 text-[11.5px] border border-purple-200/60">
+                    <div className="flex items-center gap-2">
+                      <span>🇪🇸</span>
+                      <span className="font-semibold text-purple-900">Español Subtitles</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold bg-white px-2 py-0.5 rounded-md border border-purple-200">
+                      Live Synced
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-indigo-50/70 rounded-lg px-2.5 py-1.5 text-[11.5px] border border-indigo-200/60">
+                    <div className="flex items-center gap-2">
+                      <span>🇯🇵</span>
+                      <span className="font-semibold text-indigo-900">日本語 Audio</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                      Live Synced
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <h3 className="text-[1.05rem] font-semibold text-[#1e293b] p-6 z-[2]">
-              API Access
-            </h3>
+            {/* Bottom Card Title & Subtitle */}
+            <div className="pt-4 z-10 space-y-1">
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Real-Time AI Multilingual Audio</span>
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-light">
+                Speak in your native tongue while audience members listen and read translated subtitles in 9+ languages simultaneously.
+              </p>
+            </div>
           </div>
 
-          {/* Card 3 — Project Library */}
+          {/* Card 3 — Interactive Stage & Ambassador Mesh */}
           <div
-            className="c1-card c1-card-3 h-[340px] rounded-[20px] flex flex-col justify-end relative overflow-hidden text-left bg-[#F4F8F9] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] border border-slate-100 md:col-span-2 lg:col-span-1"
+            className="group h-[380px] rounded-[24px] flex flex-col justify-between relative overflow-hidden text-left p-6 sm:p-7 bg-[#F8FAFC] border border-emerald-100/90 shadow-[0_10px_30px_-12px_rgba(16,185,129,0.08)] hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.18)] hover:border-emerald-300 transition-all duration-300 md:col-span-2 lg:col-span-1"
             style={{
-              background: 'radial-gradient(circle at 50% 0%, #F9ED96 0%, #E5A1F5 30%, #F4F8F9 60%, #F4F8F9 100%)',
+              background: 'radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.16) 0%, rgba(6, 182, 212, 0.08) 45%, #F8FAFC 75%, #F8FAFC 100%)',
             }}
           >
-            {/* Mesh overlay */}
+            {/* Mesh Overlay for Visual Depth */}
             <div
-              className="c1-mesh absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none opacity-40"
               style={{
                 backgroundImage:
-                  'linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)',
-                backgroundSize: '16px 16px',
+                  'linear-gradient(rgba(16, 185, 129, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.12) 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
                 WebkitMaskImage: 'radial-gradient(circle at center top, black 0%, transparent 80%)',
                 maskImage: 'radial-gradient(circle at center top, black 0%, transparent 80%)',
               }}
             />
 
-            {/* Folder image */}
-            <img
-              src="https://pub-f170a2592d2c4a1485466404c36807be.r2.dev/viktor/library%20icon.svg"
-              alt="Project Library"
-              className="c1-folder absolute top-[50px] left-1/2 -translate-x-1/2 w-[170px] drop-shadow-[0_15px_25px_rgba(0,0,0,0.08)]"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
+            {/* Top Interactive Representation */}
+            <div className="relative w-full pt-2">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-[0_8px_25px_rgba(16,185,129,0.08)] border border-emerald-100/80 space-y-2.5">
+                {/* Ambassador Growth Ribbon */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+                    <TrendingUp className="h-3 w-3 text-emerald-600" />
+                    <span>Ambassador Growth</span>
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-emerald-600">
+                    +$4,820 Split
+                  </span>
+                </div>
 
-            {/* Search pill */}
-            <div className="c1-search absolute top-[220px] left-1/2 -translate-x-1/2 bg-white border border-black px-[18px] py-[6px] rounded-[20px] text-[0.75rem] font-medium text-[#1e293b] shadow-[0_8px_20px_rgba(0,0,0,0.06)] whitespace-nowrap flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>Search in library</span>
+                {/* Stage interactive toolkit icons */}
+                <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-semibold text-slate-700">
+                  <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center gap-1">
+                    <Layers className="h-4 w-4 text-[#0084FF]" />
+                    <span className="text-[10px]">Whiteboard</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center gap-1">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    <span className="text-[10px]">Live Poll</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center gap-1">
+                    <Share2 className="h-4 w-4 text-emerald-600" />
+                    <span className="text-[10px]">Smart UTM</span>
+                  </div>
+                </div>
+
+                {/* Search & Trigger Action Pill */}
+                <div className="w-full py-1.5 px-3 rounded-xl bg-slate-100/80 border border-slate-200/90 text-[11px] text-slate-600 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>20% Automated Payout Active</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-[#0084FF] font-semibold">Instant WebRTC</span>
+                </div>
+              </div>
             </div>
 
-            <h3 className="text-[1.05rem] font-semibold text-[#1e293b] p-6 z-[2]">
-              Project Library
-            </h3>
+            {/* Bottom Card Title & Subtitle */}
+            <div className="pt-4 z-10 space-y-1">
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Interactive Tools &amp; Ambassador Mesh</span>
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-light">
+                Trigger collaborative whiteboards, live polls, and viral affiliate links that automatically split commissions on Stripe.
+              </p>
+            </div>
           </div>
 
         </div>
-
       </div>
     </section>
   );
