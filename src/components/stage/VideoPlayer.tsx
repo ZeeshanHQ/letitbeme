@@ -31,6 +31,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { PostMeetingProModal } from '../common/PostMeetingProModal';
 import { RecordingDownloadModal } from './RecordingDownloadModal';
 import { ParticipantGrid } from './ParticipantGrid';
+import { MeetingEndedScreen } from './MeetingEndedScreen';
 import { SUPPORTED_LANGUAGES } from '../../data/mockData';
 
 interface VideoPlayerProps {
@@ -65,6 +66,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     requestJoinRoom,
     joinedParticipants,
     activeSpeakerId,
+    isMeetingEnded,
+    setIsMeetingEnded,
+    endMeeting,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -385,6 +389,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       console.warn('Native PiP note:', e);
     }
   };
+
+  // 0. GUEST MEETING ENDED SCREEN (When host ends the live call)
+  if (!showHostControls && isMeetingEnded) {
+    return (
+      <MeetingEndedScreen
+        onRejoinLobby={() => {
+          setIsMeetingEnded(false);
+          setIsGuestJoined(false);
+          setIsWaitingInLobby(false);
+          setHasKnocked(false);
+        }}
+      />
+    );
+  }
 
   // 1. GUEST WAITING ROOM LOBBY (When knocked)
   if (!showHostControls && isWaitingInLobby && hasKnocked) {
@@ -923,11 +941,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             onClick={() => {
               if (showHostControls) {
                 setIsMeetingStarted(false);
+                endMeeting();
                 // Only show post-meeting pro summary if meeting ran for at least 5 minutes (300 seconds)
                 if (streamDuration >= 300) {
                   setShowProSummary(true);
                 }
-                if (isLive) toggleLiveStatus();
               } else {
                 setIsGuestJoined(false);
                 setHasKnocked(false);

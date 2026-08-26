@@ -129,9 +129,12 @@ export interface StreamState {
   waitingParticipants: WaitingParticipant[];
   isWaitingInLobby: boolean;
   isGuestJoined: boolean;
+  isMeetingEnded: boolean;
 }
 
 interface StreamContextType extends StreamState {
+  setIsMeetingEnded: (ended: boolean) => void;
+  endMeeting: () => void;
   setIsGuestJoined: (joined: boolean) => void;
   setIsWaitingInLobby: (waiting: boolean) => void;
   setLayoutMode: (mode: LayoutMode) => void;
@@ -286,6 +289,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [waitingParticipants, setWaitingParticipants] = useState<WaitingParticipant[]>([]);
   const [isWaitingInLobby, setIsWaitingInLobby] = useState<boolean>(false);
   const [isGuestJoined, setIsGuestJoined] = useState<boolean>(false);
+  const [isMeetingEnded, setIsMeetingEnded] = useState<boolean>(false);
   const myGuestIdRef = useRef<string>(localStorage.getItem('letitbeme_my_guest_id') || `guest-${Date.now()}`);
 
   const [localCamStream, setLocalCamStream] = useState<MediaStream | null>(null);
@@ -383,6 +387,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    const handleMeetingEnded = () => {
+      setIsGuestJoined(false);
+      setIsWaitingInLobby(false);
+      setIsMeetingEnded(true);
+      setJoinedParticipants([]);
+      setIsLive(false);
+    };
+
     bc.onmessage = (event) => {
       const { type, payload } = event.data;
       if (type === 'SYNC_WIDGET') setActiveWidgetState(payload);
@@ -403,6 +415,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'KNOCK_JOIN') handleKnock(payload);
       if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId, payload.guest);
       if (type === 'DENY_GUEST') handleDeny(payload.guestId);
+      if (type === 'MEETING_ENDED') handleMeetingEnded();
     };
 
     // Supabase Realtime WebSocket for cross-device / mobile phone synchronization
@@ -413,6 +426,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
         .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId, event.payload?.guest))
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
+        .on('broadcast', { event: 'MEETING_ENDED' }, () => handleMeetingEnded())
         .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
           if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
         })
@@ -442,6 +456,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const { payload } = JSON.parse(e.newValue);
           if (Array.isArray(payload)) setJoinedParticipants(payload);
         } catch {}
+      }
+      if (e.key === 'letitbeme_meeting_ended' && e.newValue) {
+        handleMeetingEnded();
       }
       if (e.key === 'letitbeme_last_deny' && e.newValue) {
         try {
@@ -889,6 +906,31 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const endMeeting = () => {
+    setIsLive(false);
+    setIsGuestJoined(false);
+    setIsWaitingInLobby(false);
+    setJoinedParticipants([]);
+    setIsMeetingEnded(true);
+
+    const payload = {
+      hostName: hostName || presenterName || 'Host Presenter',
+      duration: streamDuration,
+      ts: Date.now(),
+    };
+
+    channel?.postMessage({ type: 'MEETING_ENDED', payload });
+    localStorage.setItem('letitbeme_meeting_ended', JSON.stringify(payload));
+
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'MEETING_ENDED',
+        payload,
+      });
+    }
+  };
+
   return (
     <StreamContext.Provider
       value={{
@@ -907,6 +949,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         customEmbedUrl,
         joinedParticipants,
         activeSpeakerId,
+        isMeetingEnded,
+        setIsMeetingEnded,
+        endMeeting,
         meetingNotes,
         productOffer,
         offerPrice: productOffer.price,
