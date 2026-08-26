@@ -15,6 +15,9 @@ import {
   RotateCcw,
   TrendingUp,
   Plus,
+  Upload,
+  LogOut,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStream } from '../../context/StreamContext';
@@ -22,10 +25,11 @@ import { useStream } from '../../context/StreamContext';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSignOut?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { user, updateProfile, rotateMeetingSlug } = useAuth();
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSignOut }) => {
+  const { user, updateProfile, rotateMeetingSlug, signOut } = useAuth();
   const {
     requireHostApproval,
     setRequireHostApproval,
@@ -37,9 +41,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setMuteOnEntry,
   } = useStream();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'host_controls' | 'stripe' | 'affiliates'>('host_controls');
+  const [activeTab, setActiveTab] = useState<'profile' | 'host_controls' | 'stripe' | 'affiliates'>('profile');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [customSlug, setCustomSlug] = useState(user?.customSlug || 'live');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [brandColor, setBrandColor] = useState(user?.brandColor || '#0084FF');
   const [stripeLink, setStripeLink] = useState(
     localStorage.getItem('letitbeme_stripe_payment_link') || ''
@@ -50,7 +55,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   // Affiliate / Tracking Link builder
   const [newCampaignName, setNewCampaignName] = useState('');
-  const [commissionRate, setCommissionRate] = useState(15);
   const [customTrackingLinks, setCustomTrackingLinks] = useState([
     { id: '1', name: 'Twitter / X Promo', slug: 'x-promo', clicks: 142, sales: 8, revenue: 159.92 },
     { id: '2', name: 'LinkedIn Masterclass', slug: 'li-exec', clicks: 310, sales: 24, revenue: 479.76 },
@@ -73,6 +77,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setIsRotating(false);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Please choose an image under 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAvatarUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleCreateTrackingLink = (e: React.FormEvent) => {
@@ -98,6 +119,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     await updateProfile({
       fullName: fullName.trim(),
       customSlug: customSlug.trim().replace(/[^a-zA-Z0-9-_]/g, '') || 'live',
+      avatarUrl: avatarUrl.trim() || undefined,
       brandColor,
     });
 
@@ -111,11 +133,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setTimeout(() => {
       setIsSaved(false);
       onClose();
-    }, 800);
+    }, 600);
+  };
+
+  const handleSignOutClick = () => {
+    onClose();
+    if (onSignOut) {
+      onSignOut();
+    } else {
+      signOut();
+      window.location.href = '/';
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-['Plus_Jakarta_Sans',sans-serif]">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden animate-slide-up flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
@@ -125,11 +157,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <Sliders className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-heading font-bold text-slate-900 tracking-tight">
-                Meeting Room &amp; Host Settings
+              <h3 className="text-sm font-heading font-bold text-[#0f172a] tracking-tight">
+                Account &amp; Meeting Settings
               </h3>
-              <p className="text-xs text-slate-400 font-light">
-                Configure persistent meeting link, host admission rules, and affiliate tracking
+              <p className="text-xs text-slate-400 font-normal">
+                Profile picture, custom room link &amp; host permissions
               </p>
             </div>
           </div>
@@ -146,19 +178,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="px-5 pt-3 border-b border-slate-100 flex items-center gap-4 text-xs font-semibold overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('host_controls')}
-            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
-              activeTab === 'host_controls'
-                ? 'border-[#0084FF] text-[#0084FF]'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-          >
-            <Shield className="h-3.5 w-3.5" />
-            <span>Host Management</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('profile')}
             className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
               activeTab === 'profile'
@@ -167,7 +186,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             }`}
           >
             <User className="h-3.5 w-3.5" />
-            <span>Profile &amp; Link</span>
+            <span>Profile &amp; Avatar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('host_controls')}
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
+              activeTab === 'host_controls'
+                ? 'border-[#0084FF] text-[#0084FF]'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Host Controls</span>
           </button>
 
           <button
@@ -200,6 +232,108 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         {/* Form Body */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-left">
           
+          {/* Profile & Avatar Tab */}
+          {activeTab === 'profile' && (
+            <form onSubmit={handleSave} className="space-y-5">
+              
+              {/* Avatar Uploader */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-2">
+                  Meeting Profile Picture
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Profile Preview"
+                        className="h-16 w-16 rounded-2xl border-2 border-[#0084FF] object-cover bg-slate-100 shadow-md"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#0084FF] to-blue-700 text-white font-bold text-xl flex items-center justify-center shadow-md">
+                        {(fullName || 'H').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 flex-1">
+                    <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer transition-colors">
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Upload New Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      This photo appears on your stage when your camera is turned off.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Or Paste Custom Image URL
+                </label>
+                <div className="relative">
+                  <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <input
+                    type="url"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Host Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+                  placeholder="e.g. Sarah Jenkins"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Persistent Room Slug / Handle
+                </label>
+                <div className="flex items-center">
+                  <span className="px-3 py-2 text-xs bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 font-mono">
+                    letitbe.me/?room=
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={customSlug}
+                    onChange={(e) => setCustomSlug(e.target.value)}
+                    className="flex-1 px-3 py-2 text-xs rounded-r-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none font-mono font-bold text-slate-900"
+                    placeholder="sarah"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#0084FF] text-white hover:bg-[#0074E0] cursor-pointer shadow-md shadow-blue-500/20"
+                >
+                  {isSaved ? 'Saved Changes!' : 'Save Profile'}
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* Host Controls Tab */}
           {activeTab === 'host_controls' && (
             <div className="space-y-4">
@@ -243,12 +377,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <RotateCcw className={`h-4 w-4 ${isRotating ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Click the rotate icon anytime to generate a brand new secure link and invalidate the old one.
-                </p>
               </div>
 
-              {/* Toggles */}
+              {/* Admission & In-Meeting Permissions */}
               <div className="space-y-3 pt-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Admission &amp; In-Meeting Permissions
@@ -263,7 +394,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      When enabled, guests wait in lobby until host admits them with chime.
+                      When enabled, guests wait in lobby until host admits them.
                     </p>
                   </div>
                   <input
@@ -336,53 +467,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </div>
 
             </div>
-          )}
-
-          {/* Profile & Handle Tab */}
-          {activeTab === 'profile' && (
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Host Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
-                  placeholder="e.g. Sarah Jenkins"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Persistent Room Slug / Handle
-                </label>
-                <div className="flex items-center">
-                  <span className="px-3 py-2 text-xs bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 font-mono">
-                    letitbe.me/@
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    value={customSlug}
-                    onChange={(e) => setCustomSlug(e.target.value)}
-                    className="flex-1 px-3 py-2 text-xs rounded-r-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none font-mono font-bold text-slate-900"
-                    placeholder="sarah"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#0084FF] text-white hover:bg-[#0074E0] cursor-pointer"
-                >
-                  Save Profile
-                </button>
-              </div>
-            </form>
           )}
 
           {/* Stripe Payment Tab */}
@@ -472,12 +556,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
           )}
 
-          {/* Submit Action */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          {/* Modal Bottom Actions with Sign Out */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleSignOutClick}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign Out</span>
+            </button>
+
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+              className="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
             >
               Done
             </button>

@@ -83,6 +83,80 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   }, [user?.fullName, user?.customSlug]);
 
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
+  // Recording Timer
+  useEffect(() => {
+    let interval: any;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+    } else {
+      try {
+        let streamToRecord: MediaStream | null = null;
+        if (isScreenSharing && localScreenStream) {
+          streamToRecord = localScreenStream;
+        } else if (isCamOn && localCamStream) {
+          streamToRecord = localCamStream;
+        } else if (pipCanvasRef.current) {
+          streamToRecord = pipCanvasRef.current.captureStream(30);
+        }
+
+        if (!streamToRecord) {
+          alert('Start camera or screen share to begin recording.');
+          return;
+        }
+
+        recordedChunksRef.current = [];
+        const recorder = new MediaRecorder(streamToRecord);
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            recordedChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = `letitbeme-recording-${editSlug}-${new Date().toISOString().slice(0, 10)}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        };
+
+        recorder.start(1000);
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+      } catch (err) {
+        console.warn('Recording note:', err);
+      }
+    }
+  };
+
   const handleStartMeeting = () => {
     setIsConnecting(true);
     setTimeout(() => {
@@ -596,12 +670,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             </div>
           </div>
 
-          {/* AI Digital Twin Presence Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-500/40 text-[#60B1FF] text-[10px] font-mono font-bold shadow-lg backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#0084FF] animate-pulse" />
-            <span>AI DIGITAL TWIN • VOICE PRESENCE ACTIVE</span>
-          </div>
-
           <div className="relative z-10 flex items-center gap-2 max-w-md">
             {showHostControls && isEditingName ? (
               <form onSubmit={handleSaveName} className="flex flex-wrap items-center gap-1.5 bg-slate-900/95 p-2 rounded-2xl border border-[#0084FF] shadow-2xl">
@@ -660,10 +728,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </div>
             )}
           </div>
-
-          <p className="text-[11px] font-mono text-slate-400">
-            {isMicOn ? 'Broadcasting live audio mesh • Turn on webcam anytime in dock below' : 'Microphone is muted • Unmute below to broadcast audio'}
-          </p>
         </div>
       )}
 
@@ -807,18 +871,36 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
           {/* Screen Share (Host or permitted guest) */}
           {showHostControls && (
-            <button
-              type="button"
-              onClick={toggleScreenShare}
-              className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                isScreenSharing
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
-              }`}
-            >
-              <MonitorUp className="h-4 w-4" />
-              <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={toggleScreenShare}
+                className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isScreenSharing
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
+                }`}
+              >
+                <MonitorUp className="h-4 w-4" />
+                <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleRecording}
+                className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isRecording
+                    ? 'bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-600/30'
+                    : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
+                }`}
+                title={isRecording ? 'Stop Recording and Save Video' : 'Record Meeting'}
+              >
+                <span className={`h-2 w-2 rounded-full ${isRecording ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+                <span className="hidden sm:inline">
+                  {isRecording ? `REC (${formatDuration(recordingSeconds)})` : 'Record'}
+                </span>
+              </button>
+            </>
           )}
 
           {/* Leave / End Call */}

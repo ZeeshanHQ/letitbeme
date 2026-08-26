@@ -193,17 +193,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
                   />
                 </div>
               ) : (
-                /* Inside Dashboard / Meeting: Minimalist Profile + Settings Gear + SignOut */
+                /* Inside Dashboard / Meeting: Minimalist Profile + Settings Gear */
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 p-1 pl-2.5 bg-slate-100/90 rounded-full border border-slate-200 text-xs">
-                    <span className="font-semibold text-slate-900 hidden sm:inline font-sans">
-                      {user.fullName}
-                    </span>
+                  <div
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200 text-xs font-semibold text-slate-800 transition-all cursor-pointer shadow-sm"
+                    title="Click to manage profile and settings"
+                  >
+                    <span className="truncate max-w-[120px] font-heading font-bold text-[#0f172a]">{user.fullName || 'Host'}</span>
                     
                     {/* Free vs Pro Badge - Clickable to open Pro Modal */}
                     <button
                       type="button"
-                      onClick={() => setIsProModalOpen(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsProModalOpen(true);
+                      }}
                       className="cursor-pointer hover:opacity-90 transition-opacity"
                       title="Click to view Pro benefits and subscription"
                     >
@@ -220,10 +225,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
                       )}
                     </button>
 
-                    <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
-                      @{user.customSlug}
-                    </span>
-
                     {user.avatarUrl ? (
                       <img
                         src={user.avatarUrl}
@@ -237,27 +238,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
                       </div>
                     )}
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
-                    title="Account &amp; Meeting Settings"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      signOut();
-                      handleViewChange('landing');
-                    }}
-                    className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                    title="Sign Out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
                 </div>
               )
             ) : (
@@ -286,6 +266,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        onSignOut={() => {
+          signOut();
+          handleViewChange('landing');
+        }}
       />
 
       {/* Pro Upgrade Subscription Modal ($19.99/mo) */}
