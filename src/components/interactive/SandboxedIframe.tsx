@@ -1,183 +1,186 @@
 import React, { useState } from 'react';
 import {
+  FileText,
+  Copy,
+  Download,
+  Check,
   Globe,
-  ExternalLink,
+  PenTool,
   ShieldCheck,
-  Layers,
   Sparkles,
-  MousePointerClick,
-  CheckCircle2,
-  Lock,
-  Code2,
-  Calendar,
-  Play,
-  RotateCcw,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
-import { Button } from '../common/Button';
 
 export const SandboxedIframe: React.FC = () => {
-  const { customEmbedUrl, setCustomEmbedUrl } = useStream();
-  const [sandboxMode, setSandboxMode] = useState<'app_demo' | 'embed'>('app_demo');
-  const [demoState, setDemoState] = useState<'editor' | 'preview'>('preview');
-  const [codeValue, setCodeValue] = useState(`// In-Stream Interactive App Sandbox
-export default function LiveDemo() {
-  const [attendees, setAttendees] = useState(1428);
-  const [conversion, setConversion] = useState('22.4%');
-  
-  return (
-    <div className="p-4 bg-white rounded-2xl border">
-      <h3 className="font-bold">WebRTC High-Yield Funnel</h3>
-      <p>Latency: &lt;85ms | 0% Churn</p>
-    </div>
-  );
-}`);
+  const { customEmbedUrl, setCustomEmbedUrl, meetingNotes, setMeetingNotes } = useStream();
+  const [activeTool, setActiveTool] = useState<'notes' | 'whiteboard' | 'custom_url'>('notes');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyNotes = () => {
+    navigator.clipboard.writeText(meetingNotes);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadNotes = () => {
+    const blob = new Blob([meetingNotes], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `meeting-notes-${new Date().toISOString().slice(0, 10)}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="h-full flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden font-sans text-left">
-      
-      {/* Top Address & Sandbox Mode Selector */}
-      <div className="p-2.5 bg-[#FAF9F6] border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+      {/* Top Header & Tool Switcher */}
+      <div className="p-2.5 bg-[#FAF9F6] border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
           <button
             type="button"
-            onClick={() => setSandboxMode('app_demo')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxMode === 'app_demo'
-                ? 'bg-white text-obsidian shadow-sm'
-                : 'text-slate-500 hover:text-obsidian'
+            onClick={() => setActiveTool('notes')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTool === 'notes'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            Built-in Live App
+            <FileText className="h-3.5 w-3.5 text-[#0084FF]" />
+            <span>Shared Notes</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setSandboxMode('embed')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxMode === 'embed'
-                ? 'bg-white text-obsidian shadow-sm'
-                : 'text-slate-500 hover:text-obsidian'
+            onClick={() => setActiveTool('whiteboard')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTool === 'whiteboard'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            Custom Web URL
+            <PenTool className="h-3.5 w-3.5 text-purple-600" />
+            <span>Whiteboard</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTool('custom_url')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTool === 'custom_url'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Globe className="h-3.5 w-3.5 text-cyan-600" />
+            <span>Custom App</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-          <ShieldCheck className="h-3 w-3" />
-          <span>Zero-Redirect Sandbox</span>
-        </div>
+        {activeTool === 'notes' && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleCopyNotes}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer transition-all"
+              title="Copy all notes"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3 text-emerald-600" />
+                  <span className="text-emerald-600">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3 text-slate-400" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadNotes}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer transition-all"
+              title="Download notes as markdown"
+            >
+              <Download className="h-3 w-3 text-slate-400" />
+              <span>Export</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Main Sandbox Interactive Area */}
-      <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
-        {sandboxMode === 'app_demo' ? (
-          /* Real Built-in Interactive Product Sandbox */
-          <div className="h-full flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-solar-50 text-solar-700 border border-solar-200">
-                    LIVE PRODUCT SANDBOX
-                  </span>
-                  <h4 className="text-sm font-heading font-bold text-obsidian tracking-tight pt-1">
-                    Interactive Video App Test-Drive
-                  </h4>
-                </div>
-
-                <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setDemoState('preview')}
-                    className={`px-2 py-0.5 rounded font-semibold ${
-                      demoState === 'preview' ? 'bg-solar-500 text-white shadow-sm' : 'text-slate-500'
-                    }`}
-                  >
-                    UI Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDemoState('editor')}
-                    className={`px-2 py-0.5 rounded font-semibold ${
-                      demoState === 'editor' ? 'bg-solar-500 text-white shadow-sm' : 'text-slate-500'
-                    }`}
-                  >
-                    Code
-                  </button>
-                </div>
-              </div>
-
-              {demoState === 'preview' ? (
-                /* Interactive UI Component */
-                <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-obsidian">Live Stream Telemetry Node</span>
-                    <span className="text-[10px] font-mono text-emerald-600 font-bold">● Active 1080p60</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">Sub-Second RTT</span>
-                      <strong className="text-obsidian text-sm">78ms</strong>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">In-Stream GMV</span>
-                      <strong className="text-solar-600 text-sm">$173,528</strong>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-solar-50/70 border border-solar-100 text-xs text-obsidian flex items-center justify-between">
-                    <span>Attendees can test this live without leaving stream</span>
-                    <CheckCircle2 className="h-4 w-4 text-solar-500" />
-                  </div>
-                </div>
-              ) : (
-                /* Code Editor Sandbox */
-                <div className="rounded-2xl border border-slate-300 bg-obsidian p-3 font-mono text-xs text-emerald-400 overflow-x-auto shadow-inner">
-                  <textarea
-                    value={codeValue}
-                    onChange={(e) => setCodeValue(e.target.value)}
-                    rows={7}
-                    className="w-full bg-transparent border-none focus:outline-none text-xs text-solar-300 font-mono resize-none leading-relaxed"
-                  />
-                </div>
-              )}
+      {/* Main Workspace Body */}
+      <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 flex flex-col">
+        {activeTool === 'notes' && (
+          /* Live Shared Notes Editor */
+          <div className="flex-1 flex flex-col space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span>Live Synchronized Meeting Notes (Markdown)</span>
+              <span className="flex items-center gap-1 text-emerald-600 font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Sync
+              </span>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
-              <span>Try clicking buttons or editing code above in real-time</span>
-              <span className="font-mono text-solar-600 font-bold">&lt;85ms Sync</span>
+            <textarea
+              value={meetingNotes}
+              onChange={(e) => setMeetingNotes(e.target.value)}
+              placeholder="Take meeting notes, write bullet points, or list action items here in real-time..."
+              className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed focus:outline-none focus:border-[#0084FF] shadow-sm resize-none"
+            />
+          </div>
+        )}
+
+        {activeTool === 'whiteboard' && (
+          /* Interactive Collaborative Whiteboard */
+          <div className="flex-1 flex flex-col space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+              <span>Live Collaborative Canvas (Excalidraw)</span>
+              <span className="text-[10px] font-mono text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                Interactive Drawing
+              </span>
+            </div>
+
+            <div className="flex-1 min-h-[340px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner">
+              <iframe
+                src="https://excalidraw.com"
+                title="Live Whiteboard"
+                className="w-full h-full min-h-[340px] border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              />
             </div>
           </div>
-        ) : (
-          /* Custom Embed URL Frame with Fallback Protection */
-          <div className="h-full flex flex-col justify-between space-y-3">
-            <div className="space-y-2">
+        )}
+
+        {activeTool === 'custom_url' && (
+          /* Custom Embed URL */
+          <div className="flex-1 flex flex-col space-y-3">
+            <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700">
-                Embed Web App URL
+                Embed Web URL
               </label>
               <input
                 type="url"
                 value={customEmbedUrl}
                 onChange={(e) => setCustomEmbedUrl(e.target.value)}
-                placeholder="https://excalidraw.com or https://play.tailwindcss.com"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-obsidian focus:outline-none focus:border-solar-500 font-mono"
+                placeholder="https://excalidraw.com or https://cal.com/yourname"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-[#0084FF] font-mono"
               />
             </div>
 
-            <div className="flex-1 min-h-[180px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner flex items-center justify-center">
+            <div className="flex-1 min-h-[300px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner">
               <iframe
                 src={customEmbedUrl || 'https://excalidraw.com'}
-                title="Live Sandboxed App"
-                className="w-full h-full border-0"
+                title="Custom Embed"
+                className="w-full h-full min-h-[300px] border-0"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
               />
             </div>
           </div>
         )}
       </div>
-
     </div>
   );
 };

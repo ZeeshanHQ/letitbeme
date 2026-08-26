@@ -2,17 +2,22 @@ import React, { useState } from 'react';
 import {
   X,
   User,
-  CreditCard,
   Sliders,
-  Sparkles,
   Check,
   Shield,
   Palette,
   Link,
   Globe,
   Radio,
+  Copy,
+  Lock,
+  Mic,
+  MonitorUp,
+  MessageSquare,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useStream } from '../../context/StreamContext';
 import { Button } from './Button';
 
 interface SettingsModalProps {
@@ -22,17 +27,36 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { user, updateProfile } = useAuth();
+  const {
+    requireHostApproval,
+    setRequireHostApproval,
+    allowScreenShare,
+    setAllowScreenShare,
+    allowChat,
+    setAllowChat,
+    muteOnEntry,
+    setMuteOnEntry,
+  } = useStream();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'stripe' | 'audio_video'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'host_controls' | 'stripe'>('host_controls');
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [customSlug, setCustomSlug] = useState(user?.customSlug || '');
-  const [brandColor, setBrandColor] = useState(user?.brandColor || '#FF6B00');
+  const [customSlug, setCustomSlug] = useState(user?.customSlug || 'live');
+  const [brandColor, setBrandColor] = useState(user?.brandColor || '#0084FF');
   const [stripeLink, setStripeLink] = useState(
     localStorage.getItem('letitbeme_stripe_payment_link') || ''
   );
   const [isSaved, setIsSaved] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   if (!isOpen || !user) return null;
+
+  const meetingUrl = `${window.location.origin}/?room=${customSlug}`;
+
+  const handleCopyMeetingLink = () => {
+    navigator.clipboard.writeText(meetingUrl);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +76,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setTimeout(() => {
       setIsSaved(false);
       onClose();
-    }, 900);
+    }, 800);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-obsidian/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden animate-slide-up flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
@@ -66,18 +90,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <Sliders className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-heading font-bold text-obsidian tracking-tight">
-                Account & Meeting Settings
+              <h3 className="text-sm font-heading font-bold text-slate-900 tracking-tight">
+                Meeting Room &amp; Host Settings
               </h3>
               <p className="text-xs text-slate-400 font-light">
-                Manage your presenter profile, meeting handle, and direct payouts
+                Configure persistent meeting link, host admission rules, and permissions
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-obsidian hover:bg-slate-100 cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -87,15 +111,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="px-5 pt-3 border-b border-slate-100 flex items-center gap-4 text-xs font-semibold">
           <button
             type="button"
+            onClick={() => setActiveTab('host_controls')}
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+              activeTab === 'host_controls'
+                ? 'border-[#0084FF] text-[#0084FF]'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Host Management</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('profile')}
             className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
               activeTab === 'profile'
-                ? 'border-slate-900 text-obsidian'
+                ? 'border-[#0084FF] text-[#0084FF]'
                 : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
             <User className="h-3.5 w-3.5" />
-            <span>Profile & Handle</span>
+            <span>Profile &amp; Link</span>
           </button>
 
           <button
@@ -103,145 +140,224 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             onClick={() => setActiveTab('stripe')}
             className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
               activeTab === 'stripe'
-                ? 'border-slate-900 text-obsidian'
+                ? 'border-[#0084FF] text-[#0084FF]'
                 : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
-            <CreditCard className="h-3.5 w-3.5" />
-            <span>Stripe Payouts</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('audio_video')}
-            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-              activeTab === 'audio_video'
-                ? 'border-slate-900 text-obsidian'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-          >
-            <Radio className="h-3.5 w-3.5" />
-            <span>Audio & Video</span>
+            <Link className="h-3.5 w-3.5" />
+            <span>Payment Link</span>
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="p-5 overflow-y-auto space-y-4 text-left text-xs">
+        <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto flex-1 text-left">
+          
+          {/* Host Controls Tab (Meet / Zoom Standard) */}
+          {activeTab === 'host_controls' && (
+            <div className="space-y-4">
+              
+              {/* Persistent Meeting Link Box */}
+              <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#0084FF]">
+                  <span className="flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Your Persistent Meeting Link</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-600 bg-white px-2 py-0.5 rounded-full border border-blue-200">
+                    Always Online
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={meetingUrl}
+                    className="flex-1 px-3 py-2 text-xs font-mono rounded-xl bg-white border border-blue-200 text-slate-800 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyMeetingLink}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1.5 cursor-pointer shadow-sm shadow-blue-500/20"
+                  >
+                    {linkCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    <span>{linkCopied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Toggles (Google Meet / Zoom Industry Standard) */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Admission &amp; In-Meeting Permissions
+                </h4>
+
+                {/* Toggle 1: Waiting Room / Let host admit */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-3.5 w-3.5 text-slate-700" />
+                      <span className="text-xs font-semibold text-slate-900">
+                        Require Host Approval (Waiting Room)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      When enabled, guests wait in lobby until host admits them with chime.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={requireHostApproval}
+                    onChange={(e) => setRequireHostApproval(e.target.checked)}
+                    className="h-4 w-4 rounded text-[#0084FF] focus:ring-0 cursor-pointer"
+                  />
+                </div>
+
+                {/* Toggle 2: Participant Screen Share */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <MonitorUp className="h-3.5 w-3.5 text-slate-700" />
+                      <span className="text-xs font-semibold text-slate-900">
+                        Allow Participants to Share Screen
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Let connected attendees share their screen during the call.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={allowScreenShare}
+                    onChange={(e) => setAllowScreenShare(e.target.checked)}
+                    className="h-4 w-4 rounded text-[#0084FF] focus:ring-0 cursor-pointer"
+                  />
+                </div>
+
+                {/* Toggle 3: Chat & Q&A Permissions */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-slate-700" />
+                      <span className="text-xs font-semibold text-slate-900">
+                        Enable Live Chat &amp; Audience Q&amp;A
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Allow participants to ask questions and send in-meeting messages.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={allowChat}
+                    onChange={(e) => setAllowChat(e.target.checked)}
+                    className="h-4 w-4 rounded text-[#0084FF] focus:ring-0 cursor-pointer"
+                  />
+                </div>
+
+                {/* Toggle 4: Mute on entry */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Mic className="h-3.5 w-3.5 text-slate-700" />
+                      <span className="text-xs font-semibold text-slate-900">
+                        Mute Participants upon Entry
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Automatically mute attendee microphones when they join.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={muteOnEntry}
+                    onChange={(e) => setMuteOnEntry(e.target.checked)}
+                    className="h-4 w-4 rounded text-[#0084FF] focus:ring-0 cursor-pointer"
+                  />
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* Profile & Handle Tab */}
           {activeTab === 'profile' && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Full Display Name
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Host Full Name
                 </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-obsidian focus:outline-none focus:border-slate-800"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+                  placeholder="e.g. Sarah Jenkins"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Custom Meeting URL Handle
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Persistent Room Slug / Handle
                 </label>
-                <div className="flex items-center rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-500 font-mono">
-                  <span>letitbe.me/@</span>
+                <div className="flex items-center">
+                  <span className="px-3 py-2 text-xs bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 font-mono">
+                    letitbe.me/@
+                  </span>
                   <input
                     type="text"
                     required
                     value={customSlug}
                     onChange={(e) => setCustomSlug(e.target.value)}
-                    className="flex-1 bg-transparent text-obsidian font-bold outline-none pl-0.5"
+                    className="flex-1 px-3 py-2 text-xs rounded-r-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none font-mono font-bold text-slate-900"
+                    placeholder="sarah"
                   />
-                </div>
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  This is your permanent public join link for attendees.
-                </span>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Brand Accent Color
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={brandColor}
-                    onChange={(e) => setBrandColor(e.target.value)}
-                    className="h-8 w-12 rounded-lg cursor-pointer border border-slate-300 p-0.5"
-                  />
-                  <span className="font-mono text-slate-600">{brandColor}</span>
                 </div>
               </div>
             </div>
           )}
 
+          {/* Stripe Payment Tab */}
           {activeTab === 'stripe' && (
-            <div className="space-y-3 animate-fade-in">
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                <span className="font-semibold text-obsidian block">
-                  Direct Bank Payouts via Stripe
-                </span>
-                <p className="text-[11px] text-slate-500 font-light leading-relaxed">
-                  Paste your Stripe Payment Link (e.g. from your Stripe Dashboard) so attendee payments and donations deposit 100% directly into your bank.
-                </p>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Stripe Payment Link URL
-                </label>
-                <input
-                  type="url"
-                  value={stripeLink}
-                  onChange={(e) => setStripeLink(e.target.value)}
-                  placeholder="https://buy.stripe.com/..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-obsidian focus:outline-none focus:border-slate-800 font-mono"
-                />
-              </div>
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-slate-700">
+                Custom Stripe Payment Link URL
+              </label>
+              <input
+                type="url"
+                value={stripeLink}
+                onChange={(e) => setStripeLink(e.target.value)}
+                placeholder="https://buy.stripe.com/test_..."
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none font-mono"
+              />
+              <p className="text-[11px] text-slate-400">
+                When attendees click the in-stream Pro offer, they will check out through this direct link.
+              </p>
             </div>
           )}
 
-          {activeTab === 'audio_video' && (
-            <div className="space-y-3 animate-fade-in">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <span className="font-semibold text-obsidian block">WebRTC Broadcast Engine</span>
-                <p className="text-[11px] text-slate-500 font-light">
-                  Hardware acceleration, high-definition 1080p60 encoding, and noise cancellation are enabled by default.
-                </p>
-              </div>
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-[11px] font-mono">
-                ✓ Ultra-Low Latency Direct Mesh Relay (&lt;65ms RTT)
-              </div>
-            </div>
-          )}
-
-          {/* Footer Save Actions */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <Button
+          {/* Submit Action */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
               onClick={onClose}
-              className="rounded-xl"
+              className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
             >
               Cancel
-            </Button>
+            </button>
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="sm"
-              className="rounded-xl px-5 font-semibold"
-              rightIcon={isSaved ? <Check className="h-4 w-4" /> : undefined}
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-500/20"
             >
-              {isSaved ? 'Saved!' : 'Save Settings'}
-            </Button>
+              {isSaved ? <Check className="h-3.5 w-3.5" /> : null}
+              <span>{isSaved ? 'Settings Saved' : 'Save Changes'}</span>
+            </button>
           </div>
-        </form>
 
+        </form>
       </div>
     </div>
   );

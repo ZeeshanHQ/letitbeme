@@ -5,12 +5,13 @@ import {
   DollarSign,
   Globe,
   Radio,
-  Sparkles,
   CheckCircle2,
   Calendar,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useStream, InteractiveWidgetType } from '../../context/StreamContext';
-import { Button } from '../common/Button';
+import { useAuth } from '../../context/AuthContext';
 
 interface StreamBuilderModalProps {
   isOpen: boolean;
@@ -32,14 +33,25 @@ export const StreamBuilderModal: React.FC<StreamBuilderModalProps> = ({ isOpen, 
     saveStreamToSupabase,
   } = useStream();
 
+  const { user } = useAuth();
+
   const [localTitle, setLocalTitle] = useState(title);
   const [localOfferTitle, setLocalOfferTitle] = useState(offerTitle);
   const [localOfferPrice, setLocalOfferPrice] = useState(offerPrice);
   const [localSandboxUrl, setLocalSandboxUrl] = useState(customEmbedUrl);
   const [localWidget, setLocalWidget] = useState<InteractiveWidgetType>(activeWidget);
   const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const meetingUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(meetingUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,85 +68,96 @@ export const StreamBuilderModal: React.FC<StreamBuilderModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans">
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 animate-slide-up relative">
         
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-6 right-6 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
+          className="absolute top-6 right-6 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
 
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+            <div className="h-7 w-7 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#0084FF]">
               <Sliders className="h-4 w-4" />
             </div>
-            <h3 className="text-xl font-heading font-semibold text-slate-900 tracking-tight">
-              Stream Studio Builder
+            <h3 className="text-xl font-heading font-bold text-slate-900 tracking-tight">
+              Meeting Room Controls
             </h3>
           </div>
           <p className="text-xs text-slate-500 font-light">
-            Configure your broadcast title, in-stream interactive offers, and sandboxed apps.
+            Configure your meeting title, in-stream interactive tools, and persistent room link.
           </p>
         </div>
 
+        {/* Persistent Meeting Link */}
+        <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-1.5">
+          <label className="block text-[11px] font-semibold text-slate-600">
+            Persistent Room Link
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={meetingUrl}
+              className="flex-1 px-3 py-1.5 text-xs font-mono rounded-lg bg-white border border-slate-200 text-slate-800 select-all"
+            />
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1 cursor-pointer"
+            >
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSave} className="space-y-4 text-left">
-          {/* Stream Broadcast Title */}
+          {/* Meeting Title */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Live Stream Broadcast Title
+              Meeting Room Title
             </label>
             <input
               type="text"
               required
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-none"
-              placeholder="e.g. Masterclass: Scaling to 8-Figures with Zero Tab Churn"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+              placeholder="e.g. Weekly Strategy & Product Review"
             />
           </div>
 
           {/* Active In-Stream Interactive Widget Picker */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Default In-Stream Widget for Attendees
+              Default In-Meeting Tool for Attendees
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setLocalWidget('checkout')}
-                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 ${
-                  localWidget === 'checkout'
-                    ? 'border-indigo-600 bg-indigo-50/70 font-semibold text-indigo-950 ring-1 ring-indigo-500'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <DollarSign className="h-4 w-4 text-indigo-600 shrink-0" />
-                <span>1-Click Stripe Offer</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setLocalWidget('sandbox')}
-                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 ${
+                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 cursor-pointer ${
                   localWidget === 'sandbox'
-                    ? 'border-indigo-600 bg-indigo-50/70 font-semibold text-indigo-950 ring-1 ring-indigo-500'
+                    ? 'border-[#0084FF] bg-blue-50/70 font-semibold text-blue-950 ring-1 ring-[#0084FF]'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <Globe className="h-4 w-4 text-cyan-600 shrink-0" />
-                <span>Sandboxed App / Demo</span>
+                <Globe className="h-4 w-4 text-[#0084FF] shrink-0" />
+                <span>Apps &amp; Shared Notes</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setLocalWidget('poll')}
-                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 ${
+                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 cursor-pointer ${
                   localWidget === 'poll'
-                    ? 'border-indigo-600 bg-indigo-50/70 font-semibold text-indigo-950 ring-1 ring-indigo-500'
+                    ? 'border-[#0084FF] bg-blue-50/70 font-semibold text-blue-950 ring-1 ring-[#0084FF]'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
@@ -145,75 +168,39 @@ export const StreamBuilderModal: React.FC<StreamBuilderModalProps> = ({ isOpen, 
               <button
                 type="button"
                 onClick={() => setLocalWidget('lead_gen')}
-                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 ${
+                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 cursor-pointer ${
                   localWidget === 'lead_gen'
-                    ? 'border-indigo-600 bg-indigo-50/70 font-semibold text-indigo-950 ring-1 ring-indigo-500'
+                    ? 'border-[#0084FF] bg-blue-50/70 font-semibold text-blue-950 ring-1 ring-[#0084FF]'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <Calendar className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span>VIP Demo Booking</span>
+                <span>Q&amp;A / Agenda</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLocalWidget('checkout')}
+                className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center gap-2 cursor-pointer ${
+                  localWidget === 'checkout'
+                    ? 'border-[#0084FF] bg-blue-50/70 font-semibold text-blue-950 ring-1 ring-[#0084FF]'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <DollarSign className="h-4 w-4 text-[#0084FF] shrink-0" />
+                <span>Pro Tier ($19.99)</span>
               </button>
             </div>
           </div>
 
-          {/* In-Stream Product Deal Fields */}
-          {localWidget === 'checkout' && (
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 animate-fade-in">
-              <span className="text-[11px] font-mono font-semibold text-indigo-600 uppercase tracking-wider block">
-                In-Stream Checkout Configuration
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <label className="block text-[11px] text-slate-600 mb-1">Offer Title</label>
-                  <input
-                    type="text"
-                    value={localOfferTitle}
-                    onChange={(e) => setLocalOfferTitle(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-600 mb-1">Price ($)</label>
-                  <input
-                    type="number"
-                    value={localOfferPrice}
-                    onChange={(e) => setLocalOfferPrice(Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Sandboxed Demo / Cal.com URL */}
-          {localWidget === 'sandbox' && (
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 animate-fade-in">
-              <label className="block text-[11px] font-mono font-semibold text-cyan-700 uppercase tracking-wider">
-                Sandboxed Demo / Cal.com URL
-              </label>
-              <input
-                type="url"
-                value={localSandboxUrl}
-                onChange={(e) => setLocalSandboxUrl(e.target.value)}
-                placeholder="https://app.yourdomain.com/demo or https://cal.com/founder"
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-900 font-mono focus:outline-none focus:border-cyan-500"
-              />
-              <span className="text-[10px] text-slate-400 block font-light">
-                Embedded directly inside the viewer container with zero iframe redirect.
-              </span>
-            </div>
-          )}
-
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            className="w-full rounded-xl py-2.5 text-xs font-medium shadow-md shadow-indigo-500/20"
-            isLoading={isSaving}
-            rightIcon={<CheckCircle2 className="h-4 w-4" />}
+            disabled={isSaving}
+            className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/20"
           >
-            Save & Update Live Broadcast
-          </Button>
+            <CheckCircle2 className="h-4 w-4" />
+            <span>{isSaving ? 'Saving...' : 'Save & Update Meeting Room'}</span>
+          </button>
         </form>
 
       </div>
