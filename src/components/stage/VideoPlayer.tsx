@@ -370,10 +370,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   // 2. GUEST PRE-JOIN SCREEN (Zoom & Google Meet Industry Standard Widescreen Layout)
   if (!showHostControls && !isGuestJoined) {
     return (
-      <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-10 lg:p-12 font-['Plus_Jakarta_Sans',sans-serif]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <div className="w-full font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
           
-          {/* Left Column: 16:9 HD Camera Preview with Floating Device Controls */}
+          {/* Left Column: Standalone 16:9 HD Camera Preview (No outer white box) */}
           <div className="lg:col-span-7 relative aspect-video bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center border border-slate-800">
             {isCamOn && localCamStream ? (
               <video
@@ -422,8 +422,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             </div>
           </div>
 
-          {/* Right Column: Enter Meeting Info Form */}
-          <div className="lg:col-span-5 flex flex-col justify-center text-left space-y-6">
+          {/* Right Column: Enter Meeting Info (Separate Dedicated Floating White Card) */}
+          <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/90 shadow-xl p-8 sm:p-10 flex flex-col justify-center text-left space-y-6">
             <div className="space-y-1.5">
               <h3 className="text-2xl sm:text-3xl font-heading font-bold text-[#0f172a] tracking-tight">
                 Enter Meeting Info
