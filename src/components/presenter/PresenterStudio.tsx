@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Video,
   Sliders,
@@ -20,6 +20,7 @@ import { VideoPlayer } from '../stage/VideoPlayer';
 import { InteractiveLayer } from '../interactive/InteractiveLayer';
 import { LiveChat } from '../stage/LiveChat';
 import { Button } from '../common/Button';
+import { JoinRequestsToast } from '../stage/JoinRequestsToast';
 
 export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onOpenReferral }) => {
   const { activeWidget, setActiveWidget, isLive, title, layoutMode, setLayoutMode } = useStream();
@@ -28,8 +29,9 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [mobileActiveTab, setMobileActiveTab] = useState<'interactive' | 'chat'>('interactive');
 
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
@@ -58,32 +60,35 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
 
   return (
     <>
-      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-4 sm:p-6 lg:p-8 space-y-6 pb-24 font-sans text-left">
+      {/* Real-time Door Knock Animated Toast & Requests Badge */}
+      <JoinRequestsToast />
+
+      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-8 space-y-5 pb-24 font-['Plus_Jakarta_Sans',sans-serif] text-left">
         
         {/* 1. High-End Corporate Meeting Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm">
           <div className="flex items-center gap-3.5">
-            <div className="h-11 w-11 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
+            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-sm shrink-0">
               <Video className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-heading font-bold text-[#0f172a] tracking-tight">
-                  Executive Meeting Room
+                  Executive Meeting Studio
                 </h1>
                 <span className="text-xs text-emerald-600 font-mono flex items-center gap-1 font-bold">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  In Session
+                  Live
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-normal mt-0.5 max-w-xl truncate">
-                Secure WebRTC video conference • Ready for participants
+                Ultra-low latency 1080p60 WebRTC video conference
               </p>
             </div>
           </div>
 
           {/* Quick Actions & Apps Configurator */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -91,13 +96,13 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
               className="rounded-full text-xs font-semibold border-slate-200"
               leftIcon={<Sliders className="h-3.5 w-3.5 text-slate-600" />}
             >
-              Meeting Tools &amp; Offers
+              Tools &amp; Offers
             </Button>
 
             <button
               type="button"
               onClick={() => setActiveWidget('checkout')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeWidget === 'checkout'
                   ? 'bg-[#0084FF] text-white shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -110,7 +115,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
             <button
               type="button"
               onClick={() => setActiveWidget('poll')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeWidget === 'poll'
                   ? 'bg-[#0084FF] text-white shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -132,13 +137,13 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
               </span>
             </div>
             <p className="text-xs text-slate-500 font-light">
-              Anyone with this persistent link can join your meeting room instantly on mobile or desktop with zero downloads.
+              Share with attendees to join directly on mobile or desktop with zero downloads.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <div className="flex items-center px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 max-w-xs truncate">
-              <span className="text-slate-400">letitbe.me/@</span>
+              <span className="text-slate-400">letitbe.me/?room=</span>
               <strong className="text-slate-900 font-bold">{streamHandle}</strong>
             </div>
 
@@ -164,7 +169,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
               title="Rotate / Regenerate new unique meeting link"
             >
               <RotateCcw className={`h-3.5 w-3.5 text-slate-600 ${isRotating ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Rotate Link</span>
+              <span className="hidden sm:inline">Rotate</span>
             </button>
 
             <a
@@ -184,7 +189,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
         <LiveAudienceMetrics />
 
         {/* 4. Layout Selector Bar (Split / PiP / Focus) */}
-        <div className="flex items-center justify-between px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-heading font-bold text-slate-700">Stage Layout:</span>
             <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm text-xs font-semibold">
@@ -197,7 +202,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Split View (60/40)
+                Split View
               </button>
               <button
                 type="button"
@@ -219,25 +224,25 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Full Focus
+                Focus
               </button>
             </div>
           </div>
 
-          <span className="text-xs text-slate-500 font-mono hidden sm:inline">
-            Active Tool: <strong className="text-[#0084FF] uppercase font-bold">{activeWidget}</strong>
+          <span className="text-xs text-slate-500 font-mono">
+            Active App: <strong className="text-[#0084FF] uppercase font-bold">{activeWidget}</strong>
           </span>
         </div>
 
         {/* 5. Dynamic Meeting Screen & Interactive Canvas */}
-        <div className="min-h-[620px] w-full">
+        <div className="min-h-[500px] w-full">
           
           {/* LAYOUT 1: SPLIT 60/40 (Default) */}
           {layoutMode === 'split' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px] animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[500px] animate-fade-in">
               {/* Left Screen: Video Meeting (7 Cols) */}
               <div className="lg:col-span-7 flex flex-col gap-4">
-                <div className="flex-1 min-h-[460px]">
+                <div className="flex-1 min-h-[360px] sm:min-h-[460px]">
                   <VideoPlayer showHostControls={true} />
                 </div>
 
@@ -269,12 +274,47 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
 
               {/* Right Screen: Interactive Canvas & Live Chat (5 Cols) */}
               <div className="lg:col-span-5 flex flex-col gap-4">
-                <div className="flex-1 min-h-[380px]">
-                  <InteractiveLayer />
+                {/* On mobile: Tab switcher for Interactive vs Chat */}
+                <div className="flex lg:hidden items-center justify-center bg-slate-200/70 p-1 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setMobileActiveTab('interactive')}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+                      mobileActiveTab === 'interactive'
+                        ? 'bg-white text-[#0084FF] shadow-sm'
+                        : 'text-slate-600'
+                    }`}
+                  >
+                    Interactive Tool ({activeWidget})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileActiveTab('chat')}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+                      mobileActiveTab === 'chat'
+                        ? 'bg-white text-[#0084FF] shadow-sm'
+                        : 'text-slate-600'
+                    }`}
+                  >
+                    Live Chat
+                  </button>
                 </div>
 
-                <div className="h-[280px]">
-                  <LiveChat />
+                <div className="hidden lg:flex flex-col gap-4 flex-1">
+                  <div className="flex-1 min-h-[360px]">
+                    <InteractiveLayer />
+                  </div>
+                  <div className="h-[280px]">
+                    <LiveChat />
+                  </div>
+                </div>
+
+                <div className="flex lg:hidden flex-1 min-h-[380px]">
+                  {mobileActiveTab === 'interactive' ? (
+                    <InteractiveLayer />
+                  ) : (
+                    <LiveChat />
+                  )}
                 </div>
               </div>
             </div>
@@ -282,12 +322,12 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
 
           {/* LAYOUT 2: PiP MODE */}
           {layoutMode === 'pip' && (
-            <div className="relative w-full h-[720px] bg-white rounded-3xl border border-slate-200 shadow-sm p-4 overflow-hidden animate-fade-in">
+            <div className="relative w-full h-[640px] sm:h-[720px] bg-white rounded-3xl border border-slate-200 shadow-sm p-4 overflow-hidden animate-fade-in">
               <div className="w-full h-full">
                 <InteractiveLayer />
               </div>
 
-              <div className="absolute bottom-6 right-6 w-96 max-w-[90%] aspect-video z-30 rounded-3xl overflow-hidden shadow-2xl border-2 border-slate-900 ring-4 ring-black/10">
+              <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-80 sm:w-96 max-w-[90%] aspect-video z-30 rounded-3xl overflow-hidden shadow-2xl border-2 border-slate-900 ring-4 ring-black/10">
                 <VideoPlayer showHostControls={true} />
               </div>
             </div>
@@ -295,18 +335,18 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
 
           {/* LAYOUT 3: FOCUS MODE */}
           {layoutMode === 'focus' && (
-            <div className="relative w-full min-h-[640px] flex gap-5 animate-fade-in">
-              <div className="flex-1 h-full min-h-[600px] flex flex-col gap-3">
+            <div className="relative w-full min-h-[540px] sm:min-h-[640px] flex flex-col lg:flex-row gap-5 animate-fade-in">
+              <div className="flex-1 h-full min-h-[400px] sm:min-h-[600px] flex flex-col gap-3">
                 <div className="flex-1">
                   <VideoPlayer showHostControls={true} />
                 </div>
               </div>
 
-              <div className="w-96 flex flex-col gap-3">
-                <div className="flex-1 min-h-[340px]">
+              <div className="w-full lg:w-96 flex flex-col gap-3">
+                <div className="flex-1 min-h-[300px]">
                   <InteractiveLayer />
                 </div>
-                <div className="h-[260px]">
+                <div className="h-[240px]">
                   <LiveChat />
                 </div>
               </div>

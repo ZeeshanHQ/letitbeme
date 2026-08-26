@@ -814,8 +814,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       <SubtitleOverlay />
 
       {/* Bottom Floating Control Dock */}
-      <div className="relative z-30 p-4 flex items-center justify-center">
-        <div className="flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-4 py-2.5 rounded-full border border-white/15 shadow-2xl">
+      <div className="relative z-30 p-2 sm:p-4 flex items-center justify-center w-full overflow-hidden">
+        <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-white/15 shadow-2xl max-w-full overflow-x-auto">
           
           {/* Volume */}
           <button
