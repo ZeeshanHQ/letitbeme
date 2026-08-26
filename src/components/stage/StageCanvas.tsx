@@ -14,7 +14,7 @@ import { RoomNotFound } from './RoomNotFound';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const StageCanvas: React.FC = () => {
-  const { layoutMode, setLayoutMode, isWaitingInLobby, activeWidget } = useStream();
+  const { layoutMode, setLayoutMode, isGuestJoined, activeWidget } = useStream();
   const { user } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<'interactive' | 'chat'>('interactive');
@@ -90,6 +90,19 @@ export const StageCanvas: React.FC = () => {
     );
   }
 
+  // 1. UNADMITTED GUEST EXPERIENCE (Before host admits)
+  // Shows ONLY the clean Pre-Join / Waiting Lobby view (Zoom / Google Meet Standard)
+  if (!isGuestJoined) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-4 sm:p-6 lg:p-8 flex items-center justify-center font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-full max-w-lg animate-fade-in">
+          <VideoPlayer showHostControls={false} />
+        </div>
+      </div>
+    );
+  }
+
+  // 2. ADMITTED GUEST EXPERIENCE (Full In-Meeting Interactive Stage)
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-2.5 sm:p-5 lg:p-6 flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif]">
       

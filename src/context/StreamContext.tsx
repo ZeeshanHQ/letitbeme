@@ -113,9 +113,12 @@ export interface StreamState {
   muteOnEntry: boolean;
   waitingParticipants: WaitingParticipant[];
   isWaitingInLobby: boolean;
+  isGuestJoined: boolean;
 }
 
 interface StreamContextType extends StreamState {
+  setIsGuestJoined: (joined: boolean) => void;
+  setIsWaitingInLobby: (waiting: boolean) => void;
   setLayoutMode: (mode: LayoutMode) => void;
   setActiveWidget: (widget: InteractiveWidgetType) => void;
   setCustomEmbedUrl: (url: string) => void;
@@ -150,7 +153,6 @@ interface StreamContextType extends StreamState {
   requestJoinRoom: (guestName: string) => Promise<void>;
   admitParticipant: (id: string) => void;
   denyParticipant: (id: string) => void;
-  setIsWaitingInLobby: (waiting: boolean) => void;
 }
 
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
@@ -268,6 +270,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Waiting Room state
   const [waitingParticipants, setWaitingParticipants] = useState<WaitingParticipant[]>([]);
   const [isWaitingInLobby, setIsWaitingInLobby] = useState<boolean>(false);
+  const [isGuestJoined, setIsGuestJoined] = useState<boolean>(false);
   const myGuestIdRef = useRef<string>(localStorage.getItem('letitbeme_my_guest_id') || `guest-${Date.now()}`);
 
   const [localCamStream, setLocalCamStream] = useState<MediaStream | null>(null);
@@ -319,6 +322,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleAdmit = (guestId: string) => {
       if (guestId === myGuestIdRef.current) {
         setIsWaitingInLobby(false);
+        setIsGuestJoined(true);
       }
       setViewerCount((prev) => prev + 1);
     };
@@ -735,6 +739,8 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         waitingParticipants,
         isWaitingInLobby,
         setIsWaitingInLobby,
+        isGuestJoined,
+        setIsGuestJoined,
         setLayoutMode,
         setActiveWidget,
         setCustomEmbedUrl,
