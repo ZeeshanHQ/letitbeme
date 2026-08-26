@@ -8,8 +8,10 @@ import {
   Percent,
   Tag,
   User,
+  Mail,
   X,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -27,6 +29,7 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [ambassadorName, setAmbassadorName] = useState('');
+  const [ambassadorEmail, setAmbassadorEmail] = useState('');
   const [code, setCode] = useState('');
   const [commissionRate, setCommissionRate] = useState('15');
   const [isCreated, setIsCreated] = useState(false);
@@ -41,10 +44,10 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
     'promo'
   ).toLowerCase();
 
-  const generatedUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}&ref=${derivedSlug}`;
+  const generatedPromoUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}&ref=${derivedSlug}`;
 
   const handleCopyPreview = () => {
-    navigator.clipboard.writeText(generatedUrl);
+    navigator.clipboard.writeText(generatedPromoUrl);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -53,18 +56,18 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
     e.preventDefault();
     setIsLoading(true);
 
-    const linkId = `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const commissionPercent = parseFloat(commissionRate) || 15.0;
 
     if (isSupabaseConfigured) {
       try {
         await supabase.from('letitbeme_referral_links').insert({
-          id: linkId,
           host_id: user?.id || 'host',
-          ambassador_name: ambassadorName.trim() || 'Direct Campaign',
-          ambassador_email: user?.email || '',
+          ambassador_name: ambassadorName.trim() || 'Direct Partner',
+          ambassador_email: ambassadorEmail.trim().toLowerCase(),
           ref_slug: derivedSlug,
+          code: derivedSlug,
           commission_percent: commissionPercent,
+          commission_rate: commissionPercent,
           total_clicks: 0,
           total_sales: 0,
           total_revenue: 0.0,
@@ -115,12 +118,17 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
 
         {/* Live Link Preview Box with Copy Button */}
         <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-1.5">
-          <span className="text-[11px] font-mono font-bold text-[#0084FF] block">
-            Generated Referral URL (Live Preview)
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono font-bold text-[#0084FF]">
+              Attendee Tracking URL (Give to Partner)
+            </span>
+            <span className="text-[10px] font-mono text-emerald-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-blue-200">
+              Auto-Attributed
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 text-xs font-mono text-slate-800 bg-white px-3 py-2 rounded-xl border border-blue-200 truncate select-all">
-              {generatedUrl}
+              {generatedPromoUrl}
             </div>
             <button
               type="button"
@@ -135,24 +143,46 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              Campaign / Ambassador Name
+              Ambassador / Partner Name
             </label>
-            <input
-              type="text"
-              required
-              value={ambassadorName}
-              onChange={(e) => {
-                setAmbassadorName(e.target.value);
-                if (!code) {
-                  setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''));
-                }
-              }}
-              placeholder="e.g. YouTube Masterclass Review"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                required
+                value={ambassadorName}
+                onChange={(e) => {
+                  setAmbassadorName(e.target.value);
+                  if (!code) {
+                    setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''));
+                  }
+                }}
+                placeholder="e.g. Alex Rivera"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] outline-none text-slate-900 font-sans"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Partner Email (For Auto-Login Dashboard Sync)
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="email"
+                value={ambassadorEmail}
+                onChange={(e) => setAmbassadorEmail(e.target.value)}
+                placeholder="alex@gmail.com"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] outline-none text-slate-900 font-sans"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 font-light">
+              When this partner signs in with Google, they will automatically see their commissions.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -165,7 +195,7 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
-                placeholder="yt-promo"
+                placeholder="alex-yt"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
               />
             </div>
