@@ -675,7 +675,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[380px] bg-[#0A0D14] rounded-3xl overflow-hidden shadow-2xl border border-slate-800/90 flex flex-col justify-between select-none group font-sans"
+      className="relative w-full h-full min-h-[440px] bg-slate-900/60 backdrop-blur-xl rounded-3xl overflow-hidden shadow-xl border border-slate-300/40 flex flex-col justify-between select-none group font-sans"
     >
       {/* Hidden Canvas & Video for OS PiP & High-Fidelity 1080p Recording */}
       <canvas ref={pipCanvasRef} width={1280} height={720} className="hidden" />

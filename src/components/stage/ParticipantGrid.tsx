@@ -3,8 +3,6 @@ import {
   Mic,
   MicOff,
   Pin,
-  Sparkles,
-  User,
   Crown,
 } from 'lucide-react';
 import { JoinedParticipant } from '../../context/StreamContext';
@@ -20,19 +18,58 @@ interface ParticipantGridProps {
   pinnedSpeakerId?: string | null;
 }
 
+// Distinct, vibrant executive gradient palettes for each participant card
+const CARD_PALETTES = [
+  {
+    bg: 'bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E1B4B]',
+    border: 'border-indigo-500/40',
+    avatarBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600',
+    activeRing: 'border-[#0084FF] ring-2 ring-[#0084FF] shadow-[0_0_25px_rgba(0,132,255,0.4)]',
+  },
+  {
+    bg: 'bg-gradient-to-br from-[#2E1065] via-[#0F172A] to-[#3B0764]',
+    border: 'border-purple-500/40',
+    avatarBg: 'bg-gradient-to-tr from-purple-600 to-pink-600',
+    activeRing: 'border-purple-500 ring-2 ring-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.4)]',
+  },
+  {
+    bg: 'bg-gradient-to-br from-[#064E3B] via-[#0F172A] to-[#042F2E]',
+    border: 'border-emerald-500/40',
+    avatarBg: 'bg-gradient-to-tr from-teal-600 to-emerald-600',
+    activeRing: 'border-emerald-500 ring-2 ring-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.4)]',
+  },
+  {
+    bg: 'bg-gradient-to-br from-[#451A03] via-[#0F172A] to-[#78350F]',
+    border: 'border-amber-500/40',
+    avatarBg: 'bg-gradient-to-tr from-amber-600 to-orange-600',
+    activeRing: 'border-amber-500 ring-2 ring-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.4)]',
+  },
+  {
+    bg: 'bg-gradient-to-br from-[#4C0519] via-[#0F172A] to-[#881337]',
+    border: 'border-rose-500/40',
+    avatarBg: 'bg-gradient-to-tr from-rose-600 to-red-600',
+    activeRing: 'border-rose-500 ring-2 ring-rose-500 shadow-[0_0_25px_rgba(244,63,94,0.4)]',
+  },
+  {
+    bg: 'bg-gradient-to-br from-[#083344] via-[#0F172A] to-[#164E63]',
+    border: 'border-cyan-500/40',
+    avatarBg: 'bg-gradient-to-tr from-cyan-600 to-blue-600',
+    activeRing: 'border-cyan-500 ring-2 ring-cyan-500 shadow-[0_0_25px_rgba(6,182,212,0.4)]',
+  },
+];
+
 export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   participants,
   activeSpeakerId,
   isCamOn,
   localCamStream,
-  camVideoRef,
   showHostControls,
   onPinSpeaker,
   pinnedSpeakerId,
 }) => {
-  // Ensure at least 1 participant (the host) is rendered
+  // Ensure at least 1 participant (host) is present
   const displayList: JoinedParticipant[] =
-    participants.length > 0
+    participants && participants.length > 0
       ? participants
       : [
           {
@@ -47,7 +84,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
 
   const totalCount = displayList.length;
 
-  // Grid sizing logic matching Zoom & Google Meet
+  // Grid layout classes matching Zoom & Google Meet
   const getGridColsClass = () => {
     if (pinnedSpeakerId) return 'grid-cols-1';
     if (totalCount === 1) return 'grid-cols-1 max-w-5xl';
@@ -57,78 +94,84 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
     return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 max-w-[1700px]';
   };
 
-  // If a participant is pinned, render Spotlight View
+  // 1. Spotlight / Pin View
   if (pinnedSpeakerId) {
     const pinnedParticipant =
       displayList.find((p) => p.id === pinnedSpeakerId) || displayList[0];
     const otherParticipants = displayList.filter((p) => p.id !== pinnedParticipant.id);
+    const theme = CARD_PALETTES[0];
 
     return (
       <div className="w-full h-full flex flex-col gap-3 p-2 sm:p-4 select-none">
         {/* Main Pinned Stage */}
-        <div className="flex-1 relative aspect-video bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-2 border-[#0084FF] flex items-center justify-center">
+        <div className={`flex-1 relative aspect-video ${theme.bg} rounded-3xl overflow-hidden shadow-2xl border-2 ${theme.border} flex items-center justify-center`}>
           <SingleParticipantView
             participant={pinnedParticipant}
             isSelf={pinnedParticipant.isHost ? showHostControls : !showHostControls}
-            isCamOn={pinnedParticipant.isHost ? isCamOn : false}
+            isCamOn={pinnedParticipant.isHost ? (showHostControls ? isCamOn : false) : (!showHostControls ? isCamOn : false)}
             localCamStream={localCamStream}
-            camVideoRef={camVideoRef}
             isActiveSpeaker={activeSpeakerId === pinnedParticipant.id}
             isPinned={true}
+            theme={theme}
             onUnpin={() => onPinSpeaker && onPinSpeaker('')}
           />
         </div>
 
-        {/* Top / Side Filmstrip for other participants */}
+        {/* Filmstrip for others */}
         {otherParticipants.length > 0 && (
           <div className="flex items-center gap-3 overflow-x-auto py-1 px-1 shrink-0 max-h-36">
-            {otherParticipants.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => onPinSpeaker && onPinSpeaker(p.id)}
-                className="relative w-44 aspect-video rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md cursor-pointer hover:border-[#0084FF] transition-all shrink-0 group"
-              >
-                <SingleParticipantView
-                  participant={p}
-                  isSelf={p.isHost ? showHostControls : !showHostControls}
-                  isCamOn={p.isHost ? isCamOn : false}
-                  localCamStream={localCamStream}
-                  camVideoRef={camVideoRef}
-                  isActiveSpeaker={activeSpeakerId === p.id}
-                  isCompact={true}
-                />
-              </div>
-            ))}
+            {otherParticipants.map((p, idx) => {
+              const subTheme = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length];
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => onPinSpeaker && onPinSpeaker(p.id)}
+                  className={`relative w-44 aspect-video rounded-2xl overflow-hidden ${subTheme.bg} border ${subTheme.border} shadow-md cursor-pointer hover:scale-[1.02] transition-all shrink-0 group`}
+                >
+                  <SingleParticipantView
+                    participant={p}
+                    isSelf={p.isHost ? showHostControls : !showHostControls}
+                    isCamOn={p.isHost ? (showHostControls ? isCamOn : false) : (!showHostControls ? isCamOn : false)}
+                    localCamStream={localCamStream}
+                    isActiveSpeaker={activeSpeakerId === p.id}
+                    isCompact={true}
+                    theme={subTheme}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
     );
   }
 
-  // Standard Gallery Grid View (Zoom & Google Meet Standard)
+  // 2. Standard Gallery Grid View (Zoom & Google Meet Standard)
   return (
-    <div className="w-full h-full flex items-center justify-center p-2 sm:p-3 select-none">
+    <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 select-none">
       <div className={`grid ${getGridColsClass()} gap-3 sm:gap-4 w-full h-full items-center justify-center`}>
-        {displayList.map((participant) => {
+        {displayList.map((participant, idx) => {
           const isSelf = participant.isHost ? showHostControls : !showHostControls;
           const isSpeaker = activeSpeakerId === participant.id || participant.isSpeaking;
+          const theme = CARD_PALETTES[idx % CARD_PALETTES.length];
+          const participantCamOn = isSelf ? isCamOn : !!participant.isCamOn;
 
           return (
             <div
               key={participant.id}
-              className={`relative w-full aspect-video rounded-3xl overflow-hidden bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] border transition-all duration-300 shadow-2xl group flex items-center justify-center ${
+              className={`relative w-full aspect-video rounded-3xl overflow-hidden ${theme.bg} border transition-all duration-300 shadow-xl group flex items-center justify-center ${
                 isSpeaker
-                  ? 'border-[#0084FF] ring-2 ring-[#0084FF]/60 shadow-[0_0_30px_rgba(0,132,255,0.35)]'
-                  : 'border-slate-800/90 hover:border-slate-700'
+                  ? theme.activeRing
+                  : `${theme.border} hover:border-white/30`
               }`}
             >
               <SingleParticipantView
                 participant={participant}
                 isSelf={isSelf}
-                isCamOn={participant.isHost ? isCamOn : false}
+                isCamOn={participantCamOn}
                 localCamStream={localCamStream}
-                camVideoRef={camVideoRef}
                 isActiveSpeaker={isSpeaker}
+                theme={theme}
                 onPin={() => onPinSpeaker && onPinSpeaker(participant.id)}
               />
             </div>
@@ -144,8 +187,8 @@ interface SingleParticipantViewProps {
   isSelf: boolean;
   isCamOn: boolean;
   localCamStream: MediaStream | null;
-  camVideoRef: React.RefObject<HTMLVideoElement | null>;
   isActiveSpeaker: boolean;
+  theme: typeof CARD_PALETTES[0];
   isCompact?: boolean;
   isPinned?: boolean;
   onPin?: () => void;
@@ -157,8 +200,8 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   isSelf,
   isCamOn,
   localCamStream,
-  camVideoRef,
   isActiveSpeaker,
+  theme,
   isCompact = false,
   isPinned = false,
   onPin,
@@ -167,18 +210,25 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       
-      {/* 1. Camera Feed (if camera is active for self host) */}
+      {/* 1. Live Camera Feed (Direct auto-play callback ref ensures instant video mount) */}
       {isSelf && isCamOn && localCamStream ? (
         <video
-          ref={camVideoRef as any}
+          ref={(el) => {
+            if (el && localCamStream) {
+              if (el.srcObject !== localCamStream) {
+                el.srcObject = localCamStream;
+              }
+              el.play().catch(() => {});
+            }
+          }}
           autoPlay
           playsInline
           muted
           className="w-full h-full object-cover scale-x-[-1] transform"
         />
       ) : (
-        /* 2. Stylized Avatar with Live Audio Ripples */
-        <div className="flex flex-col items-center justify-center relative space-y-2">
+        /* 2. Stylized Colorful Avatar with Live Audio Ripples (No black screens) */
+        <div className="flex flex-col items-center justify-center relative space-y-2 select-none">
           
           {/* Animated Audio Glow Ripples when Speaking */}
           {isActiveSpeaker && (
@@ -194,16 +244,22 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
               alt={participant.name}
               className={`${
                 isCompact ? 'h-10 w-10' : 'h-16 w-16 sm:h-20 sm:w-20'
-              } rounded-full border-2 border-[#0084FF] shadow-2xl object-cover bg-slate-800`}
+              } rounded-full border-2 border-white/20 shadow-2xl object-cover`}
             />
           ) : (
             <div
               className={`${
                 isCompact ? 'h-10 w-10 text-sm' : 'h-16 w-16 sm:h-20 sm:w-20 text-2xl font-bold'
-              } rounded-full bg-gradient-to-tr from-blue-900 via-slate-800 to-indigo-900 border-2 border-[#0084FF] shadow-2xl flex items-center justify-center text-white font-heading`}
+              } rounded-full ${theme.avatarBg} border-2 border-white/20 shadow-2xl flex items-center justify-center text-white font-heading`}
             >
-              {participant.name.charAt(0).toUpperCase()}
+              {(participant.name || 'P').charAt(0).toUpperCase()}
             </div>
+          )}
+
+          {!isCompact && (
+            <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
+              {participant.name}
+            </strong>
           )}
         </div>
       )}
@@ -229,14 +285,14 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
       </div>
 
       {/* 5. Hover Action: Pin / Spotlight Button */}
-      {onPin && (
+      {onPin && !isPinned && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onPin();
           }}
-          className="absolute top-3 right-3 z-20 p-1.5 rounded-xl bg-black/60 hover:bg-[#0084FF] text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer border border-white/15"
+          className="absolute top-3 right-3 z-20 p-1.5 rounded-xl bg-black/60 hover:bg-[#0084FF] text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer border border-white/15 shadow-md"
           title="Spotlight / Pin to Full Stage"
         >
           <Pin className="h-3.5 w-3.5" />
