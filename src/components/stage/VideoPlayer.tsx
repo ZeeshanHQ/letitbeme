@@ -70,6 +70,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     isMeetingEnded,
     setIsMeetingEnded,
     endMeeting,
+    leaveMeeting,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -948,7 +949,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                   setShowProSummary(true);
                 }
               } else {
-                setIsGuestJoined(false);
+                leaveMeeting();
                 setHasKnocked(false);
               }
             }}

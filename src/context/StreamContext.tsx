@@ -137,6 +137,7 @@ export interface StreamState {
 interface StreamContextType extends StreamState {
   setIsMeetingEnded: (ended: boolean) => void;
   endMeeting: () => void;
+  leaveMeeting: () => void;
   setIsGuestJoined: (joined: boolean) => void;
   setIsWaitingInLobby: (waiting: boolean) => void;
   setLayoutMode: (mode: LayoutMode) => void;
@@ -516,6 +517,26 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    const handleGuestLeft = (guestId: string) => {
+      setJoinedParticipants((prev) => prev.filter((p) => p.id !== guestId));
+      setViewerCount((prev) => Math.max(1, prev - 1));
+
+      // Close WebRTC peer connection
+      if (peerConnectionsRef.current[guestId]) {
+        try {
+          peerConnectionsRef.current[guestId].close();
+        } catch {}
+        delete peerConnectionsRef.current[guestId];
+      }
+
+      // Remove remote stream
+      setRemoteStreams((prev) => {
+        const next = { ...prev };
+        delete next[guestId];
+        return next;
+      });
+    };
+
     const handleMeetingEnded = () => {
       setIsGuestJoined(false);
       setIsWaitingInLobby(false);
@@ -548,6 +569,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'KNOCK_JOIN') handleKnock(payload);
       if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId, payload.guest);
       if (type === 'DENY_GUEST') handleDeny(payload.guestId);
+      if (type === 'GUEST_LEFT') handleGuestLeft(payload.guestId);
       if (type === 'MEETING_ENDED') handleMeetingEnded();
       if (type === 'WEBRTC_SIGNAL') handleWebRTCSignal(payload);
     };
@@ -560,6 +582,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
         .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId, event.payload?.guest))
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
+        .on('broadcast', { event: 'GUEST_LEFT' }, (event) => handleGuestLeft(event.payload?.guestId))
         .on('broadcast', { event: 'MEETING_ENDED' }, () => handleMeetingEnded())
         .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
           if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
@@ -590,6 +613,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           const { payload } = JSON.parse(e.newValue);
           if (Array.isArray(payload)) setJoinedParticipants(payload);
+        } catch {}
+      }
+      if (e.key === 'letitbeme_guest_left' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          handleGuestLeft(parsed.guestId);
         } catch {}
       }
       if (e.key === 'letitbeme_meeting_ended' && e.newValue) {
@@ -1092,6 +1121,46 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const leaveMeeting = () => {
+    const guestId = myGuestIdRef.current;
+    setIsGuestJoined(false);
+    setIsWaitingInLobby(false);
+    setJoinedParticipants([]);
+
+    // Stop local camera and mic tracks
+    if (localCamStream) {
+      localCamStream.getTracks().forEach((track) => track.stop());
+      setLocalCamStream(null);
+      setIsCamOn(false);
+    }
+
+    // Close WebRTC connections
+    Object.values(peerConnectionsRef.current).forEach((pc) => {
+      try {
+        pc.close();
+      } catch {}
+    });
+    peerConnectionsRef.current = {};
+    setRemoteStreams({});
+
+    const payload = {
+      guestId,
+      name: localStorage.getItem('letitbeme_my_guest_name') || 'Guest Member',
+      ts: Date.now(),
+    };
+
+    channel?.postMessage({ type: 'GUEST_LEFT', payload });
+    localStorage.setItem('letitbeme_guest_left', JSON.stringify(payload));
+
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'GUEST_LEFT',
+        payload,
+      });
+    }
+  };
+
   return (
     <StreamContext.Provider
       value={{
@@ -1113,6 +1182,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMeetingEnded,
         setIsMeetingEnded,
         endMeeting,
+        leaveMeeting,
         meetingNotes,
         productOffer,
         offerPrice: productOffer.price,
