@@ -126,7 +126,18 @@ export const ProductCheckoutWidget: React.FC = () => {
       if (user?.email) {
         checkoutUrl.searchParams.set('prefilled_email', user.email);
       }
-      window.open(checkoutUrl.toString(), '_blank');
+      
+      // Open in centered compact popup window so live meeting stream continues uninterrupted
+      const popupWidth = 520;
+      const popupHeight = 740;
+      const left = window.screen.width / 2 - popupWidth / 2;
+      const top = window.screen.height / 2 - popupHeight / 2;
+      window.open(
+        checkoutUrl.toString(),
+        'LiveCheckout',
+        `width=${popupWidth},height=${popupHeight},top=${top},left=${left},status=no,toolbar=no,menubar=no,location=no`
+      );
+
       await recordReferralSale(Number(productPrice || 49.0), userEmail);
       setHasPurchasedHostOffer(true);
       triggerCheckoutCelebration();

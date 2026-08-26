@@ -11,68 +11,77 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '../common/Button';
+import { useAuth } from '../../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 interface CampaignGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddCampaign: (campaign: any) => void;
+  onRefreshLinks?: () => void;
 }
 
 export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
   isOpen,
   onClose,
-  onAddCampaign,
+  onRefreshLinks,
 }) => {
+  const { user } = useAuth();
   const [ambassadorName, setAmbassadorName] = useState('');
   const [role, setRole] = useState('');
   const [code, setCode] = useState('');
-  const [utmSource, setUtmSource] = useState('linkedin_creator');
-  const [utmCampaign, setUtmCampaign] = useState('q3_masterclass');
-  const [commissionRate, setCommissionRate] = useState('20');
+  const [commissionRate, setCommissionRate] = useState('15');
   const [isCreated, setIsCreated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const generatedUrl = `https://letitbe.me/live?ref=${code.toUpperCase() || 'CUSTOM-CODE'}&utm_source=${utmSource}&utm_campaign=${utmCampaign}`;
+  const generatedSlug = (code.trim() || ambassadorName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'promo').toLowerCase();
+  const generatedUrl = `${window.location.origin}/?room=${user?.customSlug || 'live'}&ref=${generatedSlug}`;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newStat = {
-      id: `ref-${Date.now()}`,
-      ambassadorName: ambassadorName.trim() || 'New Ambassador',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-      role: role.trim() || 'Growth Partner',
-      code: (code.trim() || 'AMB-' + Math.floor(Math.random() * 900 + 100)).toUpperCase(),
-      utmSource,
-      utmCampaign,
-      clicks: 0,
-      registrations: 0,
-      liveAttendees: 0,
-      widgetInteractions: 0,
-      salesCount: 0,
-      conversionRate: 0,
-      revenue: 0,
-      commission: 0,
-      status: 'active' as const,
-      createdDate: new Date().toISOString().split('T')[0],
-    };
+    setIsLoading(true);
 
-    onAddCampaign(newStat);
+    const linkId = `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const commissionPercent = parseFloat(commissionRate) || 15.0;
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('letitbeme_referral_links').insert({
+          id: linkId,
+          host_id: user?.id || 'host',
+          ambassador_name: ambassadorName.trim() || 'Direct Campaign',
+          ambassador_email: user?.email || '',
+          ref_slug: generatedSlug,
+          commission_percent: commissionPercent,
+          total_clicks: 0,
+          total_sales: 0,
+          total_revenue: 0.0,
+          total_commission: 0.0,
+        });
+      } catch (err) {
+        console.warn('Supabase referral creation note:', err);
+      }
+    }
+
+    setIsLoading(false);
     setIsCreated(true);
+    if (onRefreshLinks) onRefreshLinks();
+    
     setTimeout(() => {
       setIsCreated(false);
       onClose();
-    }, 800);
+    }, 600);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-slide-up text-left">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+            <div className="h-9 w-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#0084FF]">
               <Link className="h-5 w-5" />
             </div>
             <div>
@@ -85,126 +94,88 @@ export const CampaignGeneratorModal: React.FC<CampaignGeneratorModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
+        {/* Live Link Preview */}
+        <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-1">
+          <span className="text-[11px] font-mono font-bold text-[#0084FF] block">
+            Generated Referral URL
+          </span>
+          <div className="text-xs font-mono text-slate-800 bg-white px-3 py-2 rounded-xl border border-blue-200 truncate select-all">
+            {generatedUrl}
+          </div>
+        </div>
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Ambassador / Partner
-              </label>
-              <input
-                type="text"
-                required
-                value={ambassadorName}
-                onChange={(e) => setAmbassadorName(e.target.value)}
-                placeholder="e.g. Rachel Zane"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Role / Title
-              </label>
-              <input
-                type="text"
-                required
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g. Sales Executive"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Campaign / Ambassador Name
+            </label>
+            <input
+              type="text"
+              required
+              value={ambassadorName}
+              onChange={(e) => setAmbassadorName(e.target.value)}
+              placeholder="e.g. YouTube Masterclass Review"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Custom Referral Code
+              <label className="block font-semibold text-slate-700 mb-1">
+                Custom Referral Slug
               </label>
               <input
                 type="text"
                 required
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g. RACHEL-VIP"
-                className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 bg-slate-50/50 text-indigo-700 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 uppercase"
+                onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
+                placeholder="yt-promo"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Commission %
+              <label className="block font-semibold text-slate-700 mb-1">
+                Commission Share (%)
               </label>
-              <select
+              <input
+                type="number"
+                min="0"
+                max="100"
                 value={commissionRate}
                 onChange={(e) => setCommissionRate(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-indigo-500"
-              >
-                <option value="10">10% of Stream Sales</option>
-                <option value="15">15% of Stream Sales</option>
-                <option value="20">20% of Stream Sales (Standard)</option>
-                <option value="30">30% VIP Tier</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                UTM Source
-              </label>
-              <input
-                type="text"
-                value={utmSource}
-                onChange={(e) => setUtmSource(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                UTM Campaign
-              </label>
-              <input
-                type="text"
-                value={utmCampaign}
-                onChange={(e) => setUtmCampaign(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 focus:bg-white"
+                placeholder="15"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold focus:bg-white focus:border-[#0084FF] outline-none text-slate-900"
               />
             </div>
           </div>
 
-          {/* Generated URL Preview */}
-          <div className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
-            <span className="text-[10px] font-mono text-indigo-700 font-bold block mb-1">
-              LIVE PREVIEW URL:
-            </span>
-            <p className="text-xs font-mono text-slate-700 break-all">
-              {generatedUrl}
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
-            <Button
-              variant="secondary"
-              size="sm"
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
               onClick={onClose}
+              className="px-4 py-2 rounded-xl font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
             >
               Cancel
-            </Button>
+            </button>
+
             <Button
               type="submit"
               variant="primary"
               size="sm"
-              leftIcon={isCreated ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              disabled={isLoading}
+              className="bg-[#0084FF]"
             >
-              {isCreated ? 'Link Created!' : 'Create Tracking Link'}
+              {isLoading ? 'Creating...' : isCreated ? 'Created!' : 'Create Tracking Link'}
             </Button>
           </div>
         </form>
