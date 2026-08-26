@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsModal } from './SettingsModal';
+import { ProUpgradeModal } from './ProUpgradeModal';
 
 export type AppView = 'landing' | 'stage' | 'presenter' | 'referral';
 
@@ -22,6 +23,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
   const { user, signOut } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
 
   const handleViewChange = (view: AppView) => {
     setCurrentView(view);
@@ -182,32 +184,35 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
               ) : (
                 /* Inside Dashboard / Meeting: Minimalist Profile + Settings Gear + SignOut */
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="flex items-center gap-2 p-1 pl-2.5 bg-slate-100/90 hover:bg-slate-200/80 rounded-full border border-slate-200 transition-all text-xs cursor-pointer"
-                    title="Open Settings"
-                  >
+                  <div className="flex items-center gap-1.5 p-1 pl-2.5 bg-slate-100/90 rounded-full border border-slate-200 text-xs">
                     <span className="font-semibold text-slate-900 hidden sm:inline font-sans">
                       {user.fullName}
                     </span>
                     
-                    {/* Free vs Pro Badge */}
-                    {user.isPro ? (
-                      <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
-                        <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
-                        <span>PRO</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 px-2 py-0.5 bg-slate-200/90 border border-slate-300 rounded-full text-[10px] font-mono font-bold text-slate-600">
-                        <Zap className="h-2.5 w-2.5 text-amber-500" />
-                        <span>FREE</span>
-                      </span>
-                    )}
+                    {/* Free vs Pro Badge - Clickable to open Pro Modal */}
+                    <button
+                      type="button"
+                      onClick={() => setIsProModalOpen(true)}
+                      className="cursor-pointer hover:opacity-90 transition-opacity"
+                      title="Click to view Pro benefits and subscription"
+                    >
+                      {user.isPro ? (
+                        <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
+                          <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
+                          <span>PRO</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full text-[10px] font-mono font-bold shadow-sm shadow-blue-500/20">
+                          <Crown className="h-2.5 w-2.5 fill-white text-white" />
+                          <span>UPGRADE</span>
+                        </span>
+                      )}
+                    </button>
 
                     <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
                       @{user.customSlug}
                     </span>
+
                     {user.avatarUrl ? (
                       <img
                         src={user.avatarUrl}
@@ -220,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                         {(user.fullName || 'H').charAt(0).toUpperCase()}
                       </div>
                     )}
-                  </button>
+                  </div>
 
                   <button
                     type="button"
@@ -269,10 +274,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
         </div>
       </header>
 
-      {/* Settings Modal (Includes Affiliates, Profile, Stripe & Host Rules) */}
+      {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Pro Upgrade Subscription Modal ($19.99/mo) */}
+      <ProUpgradeModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
       />
     </>
   );
