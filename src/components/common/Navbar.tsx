@@ -12,18 +12,29 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { SettingsModal } from './SettingsModal';
 import { ProUpgradeModal } from './ProUpgradeModal';
+import { AuthModal } from '../auth/AuthModal';
 
 export type AppView = 'landing' | 'stage' | 'presenter' | 'referral';
 
 interface NavbarProps {
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
+  onOpenAuth?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onOpenAuth }) => {
   const { user, signOut } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [internalAuthOpen, setInternalAuthOpen] = useState(false);
+
+  const handleOpenAuth = () => {
+    if (onOpenAuth) {
+      onOpenAuth();
+    } else {
+      setInternalAuthOpen(true);
+    }
+  };
 
   const handleViewChange = (view: AppView) => {
     setCurrentView(view);
@@ -52,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
 
   return (
     <>
-      <header className="sticky top-4 z-50 flex items-center justify-center w-full px-4 font-sans select-none">
+      <header className="sticky top-4 z-50 flex items-center justify-center w-full px-4 font-['Plus_Jakarta_Sans',sans-serif] select-none">
         <div
           className="w-full max-w-[1380px] h-[58px] px-4 sm:px-6 flex items-center justify-between transition-all duration-300"
           style={{
@@ -126,56 +137,55 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
               </button>
             </nav>
           ) : currentView === 'landing' ? (
-            /* Public Landing Page Links */
-            <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[#475569] font-['Inter',sans-serif]">
+            /* Landing Page Menu */
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
               <button
                 type="button"
-                onClick={() => handleViewChange('landing')}
-                className="hover:text-[#0f172a] transition-colors cursor-pointer"
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection('feature-grid-section')}
-                className="hover:text-[#0f172a] transition-colors cursor-pointer"
+                onClick={() => scrollToSection('features-section')}
+                className="hover:text-slate-900 transition-colors cursor-pointer"
               >
                 Features
               </button>
               <button
                 type="button"
-                onClick={() => scrollToSection('comparison-section')}
-                className="hover:text-[#0f172a] transition-colors cursor-pointer"
+                onClick={() => scrollToSection('architecture-section')}
+                className="hover:text-slate-900 transition-colors cursor-pointer"
               >
-                Company
+                Architecture
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('comparison-section')}
+                className="hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Comparison
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('roi-section')}
-                className="hover:text-[#0f172a] transition-colors cursor-pointer"
+                className="hover:text-slate-900 transition-colors cursor-pointer"
               >
                 Pricing
               </button>
             </nav>
           ) : null}
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2.5">
+          {/* Right Action Section */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               currentView === 'landing' ? (
-                /* On Landing page: Show clean "Go to Dashboard" button + Profile */
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleViewChange('presenter')}
-                    className="group inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#0084FF] hover:bg-[#0074E0] rounded-xl transition-all shadow-sm cursor-pointer"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#0084FF] hover:bg-[#0074E0] rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>Open Meeting Room</span>
-                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    <span>Open Meeting Studio</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
 
                   <img
-                    src={user.avatarUrl}
+                    src={user.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                     alt={user.fullName}
                     referrerPolicy="no-referrer"
                     className="h-8 w-8 rounded-xl border border-slate-200 object-cover bg-slate-100"
@@ -251,20 +261,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    const authBtn = document.querySelector('[data-auth-trigger]');
-                    if (authBtn) (authBtn as HTMLElement).click();
-                  }}
+                  onClick={handleOpenAuth}
                   className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    const authBtn = document.querySelector('[data-auth-trigger]');
-                    if (authBtn) (authBtn as HTMLElement).click();
-                  }}
+                  onClick={handleOpenAuth}
                   className="px-4 py-2 text-xs font-semibold text-white bg-[#0084FF] hover:bg-[#0074E0] rounded-xl transition-all shadow-sm cursor-pointer"
                 >
                   Get Started Free
@@ -285,6 +289,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
       <ProUpgradeModal
         isOpen={isProModalOpen}
         onClose={() => setIsProModalOpen(false)}
+      />
+
+      {/* Internal Auth Modal */}
+      <AuthModal
+        isOpen={internalAuthOpen}
+        onClose={() => setInternalAuthOpen(false)}
       />
     </>
   );

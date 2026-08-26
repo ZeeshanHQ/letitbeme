@@ -1,24 +1,40 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { Button } from '../common/Button';
+import { ArrowRight, CheckCircle2, Crown, Sparkles } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface RoiCalculatorProps {
   onStartDemo?: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => {
+export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo, onOpenAuth }) => {
+  const { user } = useAuth();
+
+  const handleAction = () => {
+    if (!user) {
+      if (onOpenAuth) onOpenAuth();
+      else if (onStartDemo) onStartDemo();
+    } else {
+      if (onStartDemo) onStartDemo();
+    }
+  };
+
   return (
-    <section id="roi-section" className="py-20 sm:py-28 bg-white border-b border-slate-100 font-sans">
+    <section id="roi-section" className="py-20 sm:py-28 bg-white border-b border-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-left">
         
-        {/* Clean Section Header (No Pill Badge) */}
+        {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#0084FF] text-xs font-semibold">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Transparent Creator Pricing</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-[#0f172a] tracking-tight">
             Start Free. Upgrade for{' '}
             <span className="text-[#0084FF]">Only $19.99/month</span>.
           </h2>
           <p className="text-sm sm:text-base text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
-            No expensive enterprise lock-ins. Host interactive live streams for free, or unlock unlimited cloud recordings and priority WebRTC bandwidth for just $19.99/mo.
+            No expensive enterprise contracts or hidden fees. Host interactive live meetings for free, or unlock priority WebRTC relay and 0% sales cuts with Pro.
           </p>
         </div>
 
@@ -42,38 +58,38 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => 
                   $0 <span className="text-sm font-normal text-slate-400 font-mono">/ month</span>
                 </h3>
                 <p className="text-xs text-slate-500 font-light mt-1">
-                  Everything you need to launch interactive live streams with zero platform fees.
+                  Everything you need to launch interactive live streams and sell digital products.
                 </p>
               </div>
 
               <ul className="space-y-2.5 pt-2 text-xs text-slate-700">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>Unlimited 1080p60 WebRTC Live Streams</span>
+                  <span>Unlimited 1080p60 WebRTC Live Meetings</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>0% Platform Sales Cuts (Keep 100% Revenue)</span>
+                  <span>5% Platform Sales Fee on In-Stream Products</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>In-Stream Interactive App Sandbox Embeds</span>
+                  <span>In-Stream Collaborative Whiteboard &amp; Notes</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>Real-Time AI Subtitles in 9+ Languages</span>
+                  <span>Live Real-Time Audience Polls &amp; Q&amp;A</span>
                 </li>
               </ul>
             </div>
 
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={onStartDemo}
-              className="w-full rounded-2xl py-3 font-semibold text-xs border-slate-200"
+            <button
+              type="button"
+              onClick={handleAction}
+              className="w-full py-3.5 px-6 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs transition-all border border-slate-200 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
             >
-              Start Free Workspace
-            </Button>
+              <span>Get Started Free</span>
+              <ArrowRight className="h-4 w-4 text-slate-400" />
+            </button>
           </div>
 
           {/* Tier 2: Pro Creator All-Access (ONLY $19.99/mo) */}
@@ -85,7 +101,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-[#0084FF] uppercase tracking-wider">
-                  PRO CREATOR ALL-ACCESS
+                  PRO CREATOR PASS
                 </span>
               </div>
 
@@ -94,14 +110,18 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => 
                   Only $19.99 <span className="text-sm font-normal text-slate-400 font-mono">/ month</span>
                 </h3>
                 <p className="text-xs text-slate-500 font-light mt-1">
-                  Unlock priority WebRTC relay, HD cloud recordings &amp; custom verified branding.
+                  Keep 100% of product revenue, priority WebRTC bandwidth &amp; AI live translation.
                 </p>
               </div>
 
               <ul className="space-y-2.5 pt-2 text-xs text-slate-700">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span><strong>Everything in Free</strong> included</span>
+                  <span><strong>0% Platform Sales Cuts</strong> (Keep 100% of Revenue)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
+                  <span>Real-Time AI Multilingual Subtitles (9+ Languages)</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
@@ -109,21 +129,18 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo }) => 
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>Custom Verified Channel Handle (<code className="text-[#0084FF] bg-blue-50 px-1 py-0.5 rounded font-mono">letitbe.me/@handle</code>)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#0084FF] shrink-0" />
-                  <span>Sub-50ms Ultra-Low Latency Global WebRTC Mesh</span>
+                  <span>Custom Verified Handle (<code className="text-[#0084FF] bg-blue-50 px-1 py-0.5 rounded font-mono">letitbe.me/@handle</code>)</span>
                 </li>
               </ul>
             </div>
 
             <button
               type="button"
-              onClick={onStartDemo}
+              onClick={handleAction}
               className="w-full py-3.5 px-6 rounded-2xl bg-[#0084FF] hover:bg-[#0074E0] text-white font-semibold text-xs transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Upgrade to Pro — Only $19.99/mo</span>
+              <Crown className="h-4 w-4 text-amber-300 fill-amber-300" />
+              <span>Get Pro Creator Pass — $19.99/mo</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>

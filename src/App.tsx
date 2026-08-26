@@ -11,7 +11,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { trackReferralClick } from './lib/referral';
 
 const AppContent: React.FC = () => {
-  // Initialize view from URL param, saved localStorage, or active user
+  // Initialize view strictly from URL params
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') as AppView;
@@ -22,12 +22,8 @@ const AppContent: React.FC = () => {
     if (roomParam) {
       return 'stage';
     }
-    const saved = localStorage.getItem('letitbeme_active_view') as AppView;
-    if (saved && ['landing', 'stage', 'presenter', 'referral'].includes(saved)) {
-      return saved;
-    }
-    const hasUser = Boolean(localStorage.getItem('letitbeme_active_user'));
-    return hasUser ? 'presenter' : 'landing';
+    // Root URL (e.g. letitbeme.online) ALWAYS defaults to Landing Page
+    return 'landing';
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -35,12 +31,7 @@ const AppContent: React.FC = () => {
   const { setIsPresenterRole } = useStream();
   const prevUserRef = useRef(user);
 
-  // Persist current view to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('letitbeme_active_view', currentView);
-  }, [currentView]);
-
-  // Auto-redirect to presenter dashboard upon user login
+  // Auto-redirect to presenter studio only upon fresh login from landing page
   useEffect(() => {
     if (user && !prevUserRef.current && currentView === 'landing') {
       setCurrentView('presenter');
@@ -64,9 +55,13 @@ const AppContent: React.FC = () => {
   }, [setIsPresenterRole]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
+    <div className="min-h-screen bg-white flex flex-col font-['Plus_Jakarta_Sans',sans-serif] selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
       {/* Top Universal Minimalist Navbar */}
-      <Navbar currentView={currentView} setCurrentView={setCurrentView} />
+      <Navbar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
 
       {/* Main Viewport */}
       <main className="flex-1">
