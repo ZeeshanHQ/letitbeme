@@ -12,7 +12,7 @@ interface ParticipantGridProps {
   activeSpeakerId: string | null;
   isCamOn: boolean;
   localCamStream: MediaStream | null;
-  camVideoRef: React.RefObject<HTMLVideoElement | null>;
+  remoteStreams?: Record<string, MediaStream>;
   showHostControls: boolean;
   onPinSpeaker?: (id: string) => void;
   pinnedSpeakerId?: string | null;
@@ -63,6 +63,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   activeSpeakerId,
   isCamOn,
   localCamStream,
+  remoteStreams,
   showHostControls,
   onPinSpeaker,
   pinnedSpeakerId,
@@ -108,8 +109,9 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           <SingleParticipantView
             participant={pinnedParticipant}
             isSelf={pinnedParticipant.isHost ? showHostControls : !showHostControls}
-            isCamOn={pinnedParticipant.isHost ? (showHostControls ? isCamOn : false) : (!showHostControls ? isCamOn : false)}
+            isCamOn={isCamOn}
             localCamStream={localCamStream}
+            remoteStreams={remoteStreams}
             isActiveSpeaker={activeSpeakerId === pinnedParticipant.id}
             isPinned={true}
             theme={theme}
@@ -131,8 +133,9 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
                   <SingleParticipantView
                     participant={p}
                     isSelf={p.isHost ? showHostControls : !showHostControls}
-                    isCamOn={p.isHost ? (showHostControls ? isCamOn : false) : (!showHostControls ? isCamOn : false)}
+                    isCamOn={isCamOn}
                     localCamStream={localCamStream}
+                    remoteStreams={remoteStreams}
                     isActiveSpeaker={activeSpeakerId === p.id}
                     isCompact={true}
                     theme={subTheme}
@@ -154,7 +157,6 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           const isSelf = participant.isHost ? showHostControls : !showHostControls;
           const isSpeaker = activeSpeakerId === participant.id || participant.isSpeaking;
           const theme = CARD_PALETTES[idx % CARD_PALETTES.length];
-          const participantCamOn = isSelf ? isCamOn : !!participant.isCamOn;
 
           return (
             <div
@@ -168,8 +170,9 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
               <SingleParticipantView
                 participant={participant}
                 isSelf={isSelf}
-                isCamOn={participantCamOn}
+                isCamOn={isCamOn}
                 localCamStream={localCamStream}
+                remoteStreams={remoteStreams}
                 isActiveSpeaker={isSpeaker}
                 theme={theme}
                 onPin={() => onPinSpeaker && onPinSpeaker(participant.id)}
@@ -187,6 +190,7 @@ interface SingleParticipantViewProps {
   isSelf: boolean;
   isCamOn: boolean;
   localCamStream: MediaStream | null;
+  remoteStreams?: Record<string, MediaStream>;
   isActiveSpeaker: boolean;
   theme: typeof CARD_PALETTES[0];
   isCompact?: boolean;
@@ -200,6 +204,7 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   isSelf,
   isCamOn,
   localCamStream,
+  remoteStreams,
   isActiveSpeaker,
   theme,
   isCompact = false,
@@ -207,61 +212,130 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   onPin,
   onUnpin,
 }) => {
+  const remoteStream = remoteStreams ? remoteStreams[participant.id] : null;
+  const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled);
+  const hasRemoteAudio = remoteStream && remoteStream.getAudioTracks().some((t) => t.readyState === 'live' && t.enabled);
+
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       
-      {/* 1. Live Camera Feed (Direct auto-play callback ref ensures instant video mount) */}
-      {isSelf && isCamOn && localCamStream ? (
-        <video
-          ref={(el) => {
-            if (el && localCamStream) {
-              if (el.srcObject !== localCamStream) {
-                el.srcObject = localCamStream;
+      {/* 1. Self Local Camera Feed */}
+      {isSelf ? (
+        isCamOn && localCamStream ? (
+          <video
+            ref={(el) => {
+              if (el && localCamStream) {
+                if (el.srcObject !== localCamStream) {
+                  el.srcObject = localCamStream;
+                }
+                el.play().catch(() => {});
               }
-              el.play().catch(() => {});
-            }
-          }}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover scale-x-[-1] transform"
-        />
+            }}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover scale-x-[-1] transform"
+          />
+        ) : (
+          /* Self Stylized Avatar */
+          <div className="flex flex-col items-center justify-center relative space-y-2 select-none">
+            {isActiveSpeaker && (
+              <>
+                <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
+                <span className="absolute -inset-8 rounded-full border border-blue-500/25 animate-pulse opacity-40 pointer-events-none" />
+              </>
+            )}
+
+            {participant.avatar ? (
+              <img
+                src={participant.avatar}
+                alt={participant.name}
+                className={`${
+                  isCompact ? 'h-10 w-10' : 'h-16 w-16 sm:h-20 sm:w-20'
+                } rounded-full border-2 border-white/20 shadow-2xl object-cover`}
+              />
+            ) : (
+              <div
+                className={`${
+                  isCompact ? 'h-10 w-10 text-sm' : 'h-16 w-16 sm:h-20 sm:w-20 text-2xl font-bold'
+                } rounded-full ${theme.avatarBg} border-2 border-white/20 shadow-2xl flex items-center justify-center text-white font-heading`}
+              >
+                {(participant.name || 'P').charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            {!isCompact && (
+              <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
+                {participant.name}
+              </strong>
+            )}
+          </div>
+        )
       ) : (
-        /* 2. Stylized Colorful Avatar with Live Audio Ripples (No black screens) */
-        <div className="flex flex-col items-center justify-center relative space-y-2 select-none">
-          
-          {/* Animated Audio Glow Ripples when Speaking */}
-          {isActiveSpeaker && (
-            <>
-              <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
-              <span className="absolute -inset-8 rounded-full border border-blue-500/25 animate-pulse opacity-40 pointer-events-none" />
-            </>
-          )}
+        /* 2. Remote Participant Real WebRTC Video & Audio Stream */
+        hasRemoteVideo ? (
+          <video
+            ref={(el) => {
+              if (el && remoteStream && el.srcObject !== remoteStream) {
+                el.srcObject = remoteStream;
+                el.play().catch(() => {});
+              }
+            }}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <>
+            {/* Play remote member voice audio through speaker/headphones */}
+            {hasRemoteAudio && (
+              <audio
+                ref={(el) => {
+                  if (el && remoteStream && el.srcObject !== remoteStream) {
+                    el.srcObject = remoteStream;
+                    el.play().catch(() => {});
+                  }
+                }}
+                autoPlay
+                playsInline
+              />
+            )}
+            
+            {/* Remote Member Stylized Avatar */}
+            <div className="flex flex-col items-center justify-center relative space-y-2 select-none">
+              {isActiveSpeaker && (
+                <>
+                  <span className="absolute -inset-4 rounded-full border border-blue-400/40 animate-ping opacity-60 pointer-events-none" />
+                  <span className="absolute -inset-8 rounded-full border border-blue-500/25 animate-pulse opacity-40 pointer-events-none" />
+                </>
+              )}
 
-          {participant.avatar ? (
-            <img
-              src={participant.avatar}
-              alt={participant.name}
-              className={`${
-                isCompact ? 'h-10 w-10' : 'h-16 w-16 sm:h-20 sm:w-20'
-              } rounded-full border-2 border-white/20 shadow-2xl object-cover`}
-            />
-          ) : (
-            <div
-              className={`${
-                isCompact ? 'h-10 w-10 text-sm' : 'h-16 w-16 sm:h-20 sm:w-20 text-2xl font-bold'
-              } rounded-full ${theme.avatarBg} border-2 border-white/20 shadow-2xl flex items-center justify-center text-white font-heading`}
-            >
-              {(participant.name || 'P').charAt(0).toUpperCase()}
+              {participant.avatar ? (
+                <img
+                  src={participant.avatar}
+                  alt={participant.name}
+                  className={`${
+                    isCompact ? 'h-10 w-10' : 'h-16 w-16 sm:h-20 sm:w-20'
+                  } rounded-full border-2 border-white/20 shadow-2xl object-cover`}
+                />
+              ) : (
+                <div
+                  className={`${
+                    isCompact ? 'h-10 w-10 text-sm' : 'h-16 w-16 sm:h-20 sm:w-20 text-2xl font-bold'
+                  } rounded-full ${theme.avatarBg} border-2 border-white/20 shadow-2xl flex items-center justify-center text-white font-heading`}
+                >
+                  {(participant.name || 'P').charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              {!isCompact && (
+                <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
+                  {participant.name}
+                </strong>
+              )}
             </div>
-          )}
-
-          {!isCompact && (
-            <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
-              {participant.name}
-            </strong>
-          )}
-        </div>
+          </>
+        )
       )}
 
       {/* 3. Bottom-Left Corner Name Tag Badge (Google Meet & Zoom Standard) */}

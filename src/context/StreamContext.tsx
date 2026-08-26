@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { translateLiveSpeech } from '../lib/openai';
+import { ICE_SERVERS, WebRTCSignal } from '../lib/webrtc';
 import { SUPPORTED_LANGUAGES } from '../data/mockData';
 
 export type LayoutMode = 'split' | 'pip' | 'focus';
@@ -121,6 +122,7 @@ export interface StreamState {
   hasCheckedOut: boolean;
   localCamStream: MediaStream | null;
   localScreenStream: MediaStream | null;
+  remoteStreams: Record<string, MediaStream>;
   // Host Management & Waiting Room
   requireHostApproval: boolean;
   allowScreenShare: boolean;
@@ -337,6 +339,127 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>('host-1');
   const [pollData, setPollData] = useState<PollData | null>(null);
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+  const peerConnectionsRef = useRef<Record<string, RTCPeerConnection>>({});
+
+  // Helper to send WebRTC signals across all 3 channels
+  const sendWebRTCSignal = (signal: WebRTCSignal) => {
+    channel?.postMessage({ type: 'WEBRTC_SIGNAL', payload: signal });
+    localStorage.setItem('letitbeme_webrtc_signal', JSON.stringify({ ...signal, ts: Date.now() }));
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'WEBRTC_SIGNAL',
+        payload: signal,
+      });
+    }
+  };
+
+  const createPeerConnection = (targetPeerId: string, isInitiator: boolean) => {
+    if (peerConnectionsRef.current[targetPeerId]) {
+      return peerConnectionsRef.current[targetPeerId];
+    }
+
+    try {
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      peerConnectionsRef.current[targetPeerId] = pc;
+
+      // Attach local stream tracks
+      if (localCamStream) {
+        localCamStream.getTracks().forEach((track) => {
+          pc.addTrack(track, localCamStream);
+        });
+      }
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          sendWebRTCSignal({
+            type: 'ICE_CANDIDATE',
+            senderId: myGuestIdRef.current,
+            targetId: targetPeerId,
+            data: event.candidate,
+            ts: Date.now(),
+          });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        const [stream] = event.streams;
+        if (stream) {
+          setRemoteStreams((prev) => ({
+            ...prev,
+            [targetPeerId]: stream,
+          }));
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          setRemoteStreams((prev) => {
+            const next = { ...prev };
+            delete next[targetPeerId];
+            return next;
+          });
+        }
+      };
+
+      if (isInitiator) {
+        pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+          .then((offer) => pc.setLocalDescription(offer))
+          .then(() => {
+            sendWebRTCSignal({
+              type: 'OFFER',
+              senderId: myGuestIdRef.current,
+              targetId: targetPeerId,
+              data: pc.localDescription,
+              ts: Date.now(),
+            });
+          })
+          .catch((err) => console.warn('Offer error:', err));
+      }
+
+      return pc;
+    } catch (err) {
+      console.warn('Peer connection error:', err);
+      return null as any;
+    }
+  };
+
+  const handleWebRTCSignal = async (signal: WebRTCSignal) => {
+    const myId = myGuestIdRef.current;
+    if (!signal || signal.senderId === myId) return;
+    if (signal.targetId && signal.targetId !== myId) return;
+
+    if (signal.type === 'PEER_JOINED') {
+      createPeerConnection(signal.senderId, true);
+    } else if (signal.type === 'OFFER') {
+      const pc = createPeerConnection(signal.senderId, false);
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        sendWebRTCSignal({
+          type: 'ANSWER',
+          senderId: myId,
+          targetId: signal.senderId,
+          data: pc.localDescription,
+          ts: Date.now(),
+        });
+      }
+    } else if (signal.type === 'ANSWER') {
+      const pc = peerConnectionsRef.current[signal.senderId];
+      if (pc && pc.signalingState !== 'stable') {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+      }
+    } else if (signal.type === 'ICE_CANDIDATE') {
+      const pc = peerConnectionsRef.current[signal.senderId];
+      if (pc && signal.data) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(signal.data));
+        } catch {}
+      }
+    }
+  };
 
   // Synchronize across both BroadcastChannel and Supabase Realtime
   useEffect(() => {
@@ -355,6 +478,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (guestId === myGuestIdRef.current) {
         setIsWaitingInLobby(false);
         setIsGuestJoined(true);
+        // Announce peer joined to establish WebRTC connection with host
+        sendWebRTCSignal({
+          type: 'PEER_JOINED',
+          senderId: myGuestIdRef.current,
+          ts: Date.now(),
+        });
       }
       setViewerCount((prev) => prev + 1);
 
@@ -393,6 +522,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsMeetingEnded(true);
       setJoinedParticipants([]);
       setIsLive(false);
+      // Clean up peer connections
+      Object.values(peerConnectionsRef.current).forEach((pc) => pc.close());
+      peerConnectionsRef.current = {};
+      setRemoteStreams({});
     };
 
     bc.onmessage = (event) => {
@@ -416,6 +549,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId, payload.guest);
       if (type === 'DENY_GUEST') handleDeny(payload.guestId);
       if (type === 'MEETING_ENDED') handleMeetingEnded();
+      if (type === 'WEBRTC_SIGNAL') handleWebRTCSignal(payload);
     };
 
     // Supabase Realtime WebSocket for cross-device / mobile phone synchronization
@@ -430,6 +564,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
           if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
         })
+        .on('broadcast', { event: 'WEBRTC_SIGNAL' }, (event) => handleWebRTCSignal(event.payload))
         .on('broadcast', { event: 'SYNC_AGENDA' }, (event) => {
           setAgendaState(event.payload);
           localStorage.setItem('letitbeme_agenda', JSON.stringify(event.payload));
@@ -459,6 +594,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (e.key === 'letitbeme_meeting_ended' && e.newValue) {
         handleMeetingEnded();
+      }
+      if (e.key === 'letitbeme_webrtc_signal' && e.newValue) {
+        try {
+          const signal = JSON.parse(e.newValue);
+          handleWebRTCSignal(signal);
+        } catch {}
       }
       if (e.key === 'letitbeme_last_deny' && e.newValue) {
         try {
@@ -723,17 +864,29 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       if (isCamOn) {
         if (localCamStream) {
-          localCamStream.getTracks().forEach((t) => t.stop());
-          setLocalCamStream(null);
+          localCamStream.getVideoTracks().forEach((t) => t.stop());
         }
         setIsCamOn(false);
       } else {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: true,
         });
         setLocalCamStream(stream);
         setIsCamOn(true);
+
+        // Attach tracks to all active WebRTC peer connections
+        Object.values(peerConnectionsRef.current).forEach((pc) => {
+          stream.getTracks().forEach((track) => {
+            const senders = pc.getSenders();
+            const sender = senders.find((s) => s.track?.kind === track.kind);
+            if (sender) {
+              sender.replaceTrack(track);
+            } else {
+              pc.addTrack(track, stream);
+            }
+          });
+        });
       }
     } catch {
       setIsCamOn(false);
@@ -741,6 +894,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const toggleMic = async () => {
+    if (localCamStream) {
+      const audioTracks = localCamStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach((t) => {
+          t.enabled = !isMicOn;
+        });
+      }
+    }
     setIsMicOn((prev) => !prev);
   };
 
@@ -972,6 +1133,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         hasCheckedOut,
         localCamStream,
         localScreenStream,
+        remoteStreams,
         requireHostApproval,
         allowScreenShare,
         allowChat,

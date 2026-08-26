@@ -66,6 +66,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     requestJoinRoom,
     joinedParticipants,
     activeSpeakerId,
+    remoteStreams,
     isMeetingEnded,
     setIsMeetingEnded,
     endMeeting,
@@ -744,7 +745,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             activeSpeakerId={activeSpeakerId}
             isCamOn={isCamOn}
             localCamStream={localCamStream}
-            camVideoRef={camVideoRef}
+            remoteStreams={remoteStreams}
             showHostControls={showHostControls}
             pinnedSpeakerId={pinnedSpeakerId}
             onPinSpeaker={(id) => setPinnedSpeakerId(id === pinnedSpeakerId ? null : id)}
