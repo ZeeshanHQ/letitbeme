@@ -126,12 +126,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   };
 
-  // Recording Timer
+  // Recording Timer with auto-stop protection at 45 minutes (2700 seconds)
   useEffect(() => {
     let interval: any;
     if (isRecording) {
       interval = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
+        setRecordingSeconds((prev) => {
+          if (prev >= 2700) { // 45 minute safe ceiling
+            handleToggleRecording();
+            return 2700;
+          }
+          return prev + 1;
+        });
       }, 1000);
     } else {
       setRecordingSeconds(0);
@@ -148,13 +154,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       setIsRecording(false);
     } else {
       try {
+        // Compose high-end stream using canvas capture + audio mixer
         let streamToRecord: MediaStream | null = null;
-        if (isScreenSharing && localScreenStream) {
+        
+        if (pipCanvasRef.current) {
+          streamToRecord = pipCanvasRef.current.captureStream(30);
+        } else if (isScreenSharing && localScreenStream) {
           streamToRecord = localScreenStream;
         } else if (isCamOn && localCamStream) {
           streamToRecord = localCamStream;
-        } else if (pipCanvasRef.current) {
-          streamToRecord = pipCanvasRef.current.captureStream(30);
         }
 
         if (!streamToRecord) {
@@ -162,8 +170,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           return;
         }
 
+        // Attach microphone audio track to the video capture
+        if (localCamStream && localCamStream.getAudioTracks().length > 0) {
+          const audioTrack = localCamStream.getAudioTracks()[0];
+          if (!streamToRecord.getAudioTracks().some((t) => t.id === audioTrack.id)) {
+            streamToRecord.addTrack(audioTrack);
+          }
+        }
+
         recordedChunksRef.current = [];
-        const recorder = new MediaRecorder(streamToRecord);
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+          ? 'video/webm;codecs=vp9,opus'
+          : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : 'video/webm';
+
+        const recorder = new MediaRecorder(streamToRecord, {
+          mimeType,
+          videoBitsPerSecond: 2500000, // 2.5 Mbps crisp 1080p
+        });
 
         recorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
@@ -183,7 +208,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         setIsRecording(true);
         playVoiceAnnouncement('This meeting is being recorded.');
       } catch (err) {
-        console.warn('Recording note:', err);
+        console.warn('Recording engine note:', err);
       }
     }
   };
@@ -241,7 +266,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipCamVideoRef = useRef<HTMLVideoElement>(null);
   
-  // Hidden Canvas & Video for OS PiP
+  // Hidden Canvas & Video for OS PiP & High-Fidelity Recording
   const pipCanvasRef = useRef<HTMLCanvasElement>(null);
   const pipStreamVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -275,7 +300,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   }, [localScreenStream, isScreenSharing]);
 
-  // Canvas Painter for Native OS PiP
+  // Canvas Painter for Stage & High-Fidelity Capture
   useEffect(() => {
     const canvas = pipCanvasRef.current;
     if (!canvas) return;
@@ -398,13 +423,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     );
   }
 
-  // 2. GUEST PRE-JOIN SCREEN (Zoom & Google Meet Industry Standard Widescreen Layout)
+  // 2. GUEST PRE-JOIN SCREEN (Real-time Name & Avatar synchronization)
   if (!showHostControls && !isGuestJoined) {
     return (
       <div className="w-full font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
           
-          {/* Left Column: Standalone 16:9 HD Camera Preview (No outer white box) */}
+          {/* Left Column: Standalone 16:9 HD Camera Preview */}
           <div className="lg:col-span-7 relative aspect-video bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center border border-slate-800">
             {isCamOn && localCamStream ? (
               <video
@@ -415,11 +440,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 className="w-full h-full object-cover scale-x-[-1] transform"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center space-y-3 text-slate-400">
-                <div className="h-20 w-20 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white text-3xl font-heading font-bold shadow-inner">
-                  {(guestName || 'G').charAt(0).toUpperCase()}
+              /* Real-time Dynamic Name & Initial Avatar */
+              <div className="flex flex-col items-center justify-center space-y-2 text-slate-300">
+                <div className="h-20 w-20 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center text-white text-2xl font-heading font-bold shadow-inner">
+                  {(guestName.trim() || 'Y').charAt(0).toUpperCase()}
                 </div>
-                <span className="text-xs font-mono text-slate-500">Camera is off</span>
+                <div className="text-center">
+                  <strong className="text-sm font-bold text-white block">
+                    {guestName.trim() || 'Your Name'}
+                  </strong>
+                  <span className="text-[11px] font-mono text-slate-400">Camera is off</span>
+                </div>
               </div>
             )}
 
@@ -641,8 +672,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       ref={containerRef}
       className="relative w-full h-full min-h-[380px] bg-[#0A0D14] rounded-3xl overflow-hidden shadow-2xl border border-slate-800/90 flex flex-col justify-between select-none group font-sans"
     >
-      {/* Hidden Canvas & Video for OS PiP stream */}
-      <canvas ref={pipCanvasRef} width={640} height={360} className="hidden" />
+      {/* Hidden Canvas & Video for OS PiP & High-Fidelity 1080p Recording */}
+      <canvas ref={pipCanvasRef} width={1280} height={720} className="hidden" />
       <video ref={pipStreamVideoRef} autoPlay playsInline muted className="hidden" />
 
       {/* 1. SCREEN SHARE VIEW */}
@@ -793,20 +824,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       )}
 
-      {/* Top Floating Status Indicator inside Video */}
+      {/* Top Floating Status Indicator inside Video (Clean, 0 duplicate timers) */}
       <div className="relative z-30 p-3 sm:p-4 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2">
-          {isRecording ? (
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-rose-600/90 backdrop-blur-md px-3 py-1 rounded-full border border-rose-400/30 font-mono animate-pulse">
-              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-              <span>REC {formatDuration(recordingSeconds)}</span>
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-              <Users className="h-3 w-3 text-slate-400" />
-              <span>{viewerCount}</span>
-            </span>
-          )}
+          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+            <Users className="h-3 w-3 text-slate-400" />
+            <span>{viewerCount}</span>
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -822,9 +846,64 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       {/* Subtitle Overlay (Live Speech & AI Translation) */}
       <SubtitleOverlay />
 
+      {/* Captions Language Selection Dropdown Menu - Positioned cleanly above dock without overflow clipping */}
+      {isCaptionsOpen && (
+        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 w-64 bg-slate-900/98 backdrop-blur-2xl rounded-2xl border border-slate-700 shadow-2xl p-3.5 z-50 text-left space-y-3 animate-slide-up text-white">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-1.5 text-xs font-bold font-heading">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+              <span>Live AI Captions</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleAiTranslation}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                isAiTranslationActive
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              {isAiTranslationActive ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Translate To Language (OpenAI gpt-4o-mini):
+            </label>
+            <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setLanguage(lang.code as SupportedLanguage);
+                    if (!isAiTranslationActive) toggleAiTranslation();
+                    setIsCaptionsOpen(false);
+                  }}
+                  className={`w-full px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    currentLanguage === lang.code
+                      ? 'bg-purple-600/30 text-purple-300 font-bold border border-purple-500/40'
+                      : 'hover:bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{lang.flag}</span>
+                    <span>{lang.name}</span>
+                  </span>
+                  {currentLanguage === lang.code && (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Floating Control Dock */}
-      <div className="relative z-30 p-2 sm:p-4 flex items-center justify-center w-full overflow-hidden">
-        <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-white/15 shadow-2xl max-w-full overflow-x-auto relative">
+      <div className="relative z-30 p-2 sm:p-4 flex items-center justify-center w-full">
+        <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-white/15 shadow-2xl max-w-full overflow-x-auto">
           
           {/* Volume */}
           <button
@@ -894,7 +973,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
               </button>
 
-              {/* Record Button (Host Only) with Female Voice Announcement */}
+              {/* Record Button (Host Only) with Female Voice Announcement & Single Clock */}
               <button
                 type="button"
                 onClick={handleToggleRecording}
@@ -914,76 +993,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           )}
 
           {/* Captions / AI Live Translation Dropdown Button */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsCaptionsOpen(!isCaptionsOpen)}
-              className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer border ${
-                isAiTranslationActive
-                  ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-900/30'
-                  : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
-              }`}
-              title="Live Captions & AI Translation"
-            >
-              <Languages className="h-4 w-4" />
-              <span className="hidden md:inline">Captions</span>
-            </button>
-
-            {/* Captions Language Selection Dropdown Menu */}
-            {isCaptionsOpen && (
-              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 w-64 bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-700 shadow-2xl p-3 z-50 text-left space-y-3 animate-slide-up text-white">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <div className="flex items-center gap-1.5 text-xs font-bold font-heading">
-                    <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                    <span>Live AI Captions</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleAiTranslation}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                      isAiTranslationActive
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {isAiTranslationActive ? 'ON' : 'OFF'}
-                  </button>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Translate To Language:
-                  </label>
-                  <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => {
-                          setLanguage(lang.code as SupportedLanguage);
-                          if (!isAiTranslationActive) toggleAiTranslation();
-                          setIsCaptionsOpen(false);
-                        }}
-                        className={`w-full px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
-                          currentLanguage === lang.code
-                            ? 'bg-purple-600/30 text-purple-300 font-bold border border-purple-500/40'
-                            : 'hover:bg-slate-800 text-slate-300'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span>{lang.flag}</span>
-                          <span>{lang.name}</span>
-                        </span>
-                        {currentLanguage === lang.code && (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsCaptionsOpen(!isCaptionsOpen)}
+            className={`p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer border ${
+              isAiTranslationActive
+                ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-900/30'
+                : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
+            }`}
+            title="Live Captions & AI Translation"
+          >
+            <Languages className="h-4 w-4" />
+            <span className="hidden md:inline">Captions</span>
+          </button>
 
           {/* Leave / End Call */}
           <button

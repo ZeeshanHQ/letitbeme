@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { translateLiveSpeech } from '../lib/openai';
+import { SUPPORTED_LANGUAGES } from '../data/mockData';
 
 export type LayoutMode = 'split' | 'pip' | 'focus';
 export type InteractiveWidgetType = 'none' | 'lead_gen' | 'checkout' | 'poll' | 'sandbox';
@@ -276,7 +278,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [localCamStream, setLocalCamStream] = useState<MediaStream | null>(null);
   const [localScreenStream, setLocalScreenStream] = useState<MediaStream | null>(null);
 
-  const [latestSubtitle] = useState<SubtitleItem>({
+  const [latestSubtitle, setLatestSubtitle] = useState<SubtitleItem>({
     originalText: '',
     translatedText: '',
     timestamp: '',
@@ -347,6 +349,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (type === 'SYNC_LANG') setCurrentLanguageState(payload);
       if (type === 'SYNC_MSG') setMessages((prev) => [...prev, payload]);
+      if (type === 'SYNC_SUBTITLE') setLatestSubtitle(payload);
       if (type === 'SYNC_LIVE_STATUS') setIsLive(payload);
       if (type === 'KNOCK_JOIN') handleKnock(payload);
       if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId);
@@ -465,6 +468,60 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const toggleAiTranslation = () => {
     setIsAiTranslationActive((prev) => !prev);
   };
+
+  // Live Speech Recognition & Real-time OpenAI gpt-4o-mini Subtitle Generation
+  useEffect(() => {
+    if (!isAiTranslationActive || !isMicOn) return;
+
+    let recognition: any = null;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      try {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = async (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join('');
+
+          if (transcript.trim()) {
+            const langObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage);
+            const targetLang = langObj?.name || 'English';
+
+            // Call OpenAI gpt-4o-mini translation engine
+            const result = await translateLiveSpeech(transcript.trim(), targetLang);
+
+            const subtitlePayload: SubtitleItem = {
+              originalText: transcript.trim(),
+              translatedText: result.translatedText,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+
+            setLatestSubtitle(subtitlePayload);
+            channel?.postMessage({ type: 'SYNC_SUBTITLE', payload: subtitlePayload });
+          }
+        };
+
+        recognition.onerror = () => {};
+        recognition.start();
+      } catch (err) {
+        console.warn('Speech recognition notice:', err);
+      }
+    }
+
+    return () => {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch {}
+      }
+    };
+  }, [isAiTranslationActive, isMicOn, currentLanguage, channel]);
 
   const triggerReaction = (emoji: string) => {
     const newReaction: FloatingReaction = {
