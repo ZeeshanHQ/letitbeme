@@ -67,10 +67,6 @@ export const ComparisonSection: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0E1A]/90 via-[#0A0E1A]/50 to-transparent" />
 
           <div className="relative z-10 p-8 sm:p-14 lg:p-20 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-mono">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>The Next-Gen Standard for Live Sales Meetings</span>
-            </div>
             <h3 className="text-3xl sm:text-4xl lg:text-[46px] font-medium tracking-[-0.02em] text-white leading-[1.12] font-['Plus_Jakarta_Sans',sans-serif]">
               Building the infrastructure for interactive video commerce
             </h3>
@@ -83,9 +79,6 @@ export const ComparisonSection: React.FC = () => {
         {/* Alternative Competitor Benchmark Cards */}
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="space-y-2">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-[#0084FF] font-bold">
-              Alternative Benchmarks &amp; Modern Replacements
-            </h4>
             <h3 className="text-2xl sm:text-3xl font-heading font-semibold text-[#0f172a] tracking-tight">
               Why high-converting teams switch to LetItBeMe
             </h3>

@@ -25,10 +25,6 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onStartDemo, onOpe
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#0084FF] text-xs font-semibold">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Transparent Creator Pricing</span>
-          </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-[#0f172a] tracking-tight">
             Start Free. Upgrade for{' '}
             <span className="text-[#0084FF]">Only $19.99/month</span>.
