@@ -25,6 +25,7 @@ import {
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import { PostMeetingProModal } from '../common/PostMeetingProModal';
 
 interface VideoPlayerProps {
   showHostControls?: boolean;
@@ -59,6 +60,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(0.85);
+  const [showProSummary, setShowProSummary] = useState(false);
 
   // Real-time editable host name and slug
   const [isEditingName, setIsEditingName] = useState(false);
@@ -619,6 +621,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               type="button"
               onClick={() => {
                 setIsMeetingStarted(false);
+                setShowProSummary(true);
                 toggleLiveStatus();
               }}
               className="p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30"
@@ -652,6 +655,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           </div>
         </div>
       )}
+
+      {/* Post-Meeting Summary & Pro Upgrade Modal */}
+      <PostMeetingProModal
+        isOpen={showProSummary}
+        onClose={() => setShowProSummary(false)}
+      />
     </div>
   );
 };
