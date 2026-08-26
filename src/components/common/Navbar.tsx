@@ -177,6 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                   <img
                     src={user.avatarUrl}
                     alt={user.fullName}
+                    referrerPolicy="no-referrer"
                     className="h-8 w-8 rounded-xl border border-slate-200 object-cover"
                     title={user.fullName}
                   />
@@ -205,6 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                     <img
                       src={user.avatarUrl}
                       alt={user.fullName}
+                      referrerPolicy="no-referrer"
                       className="h-6 w-6 rounded-full border border-slate-200 object-cover"
                     />
                   </button>

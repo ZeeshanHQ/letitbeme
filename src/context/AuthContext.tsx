@@ -55,89 +55,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  // Listen to Supabase Auth State
+  // Listen to Supabase Auth State & Sync Google Profile Avatar
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
+    // Initial session check on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        syncSessionUser(session.user);
+      }
+    });
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && !user) {
-        const email = session.user.email || '';
-        const fullName =
-          session.user.user_metadata?.full_name ||
-          session.user.user_metadata?.name ||
-          email.split('@')[0];
-
-        const googleAvatar =
-          session.user.user_metadata?.avatar_url ||
-          session.user.user_metadata?.picture ||
-          session.user.user_metadata?.avatar ||
-          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
-
-        try {
-          const { data: existingUser } = await supabase
-            .from('letitbeme_users')
-            .select('*')
-            .eq('email', email.toLowerCase().trim())
-            .single();
-
-          if (existingUser) {
-            const finalAvatar = existingUser.avatar_url && !existingUser.avatar_url.includes('dicebear')
-              ? existingUser.avatar_url
-              : googleAvatar;
-
-            const profile: UserProfile = {
-              id: existingUser.id,
-              email: existingUser.email,
-              fullName: existingUser.full_name || fullName,
-              avatarUrl: finalAvatar,
-              role: existingUser.role || 'host',
-              customSlug: existingUser.custom_slug || email.split('@')[0],
-              brandColor: existingUser.brand_color || '#0084FF',
-              pricingMode: 'free',
-              isPro: Boolean(existingUser.is_pro),
-              tier: existingUser.tier || 'free',
-              proSince: existingUser.pro_since,
-            };
-
-            setUser(profile);
-          } else {
-            const newId = `user_${Date.now()}`;
-            const slug = email.split('@')[0].replace(/[^a-zA-Z0-9-_]/g, '') || `user${Math.floor(Math.random()*1000)}`;
-            const newProfile: UserProfile = {
-              id: newId,
-              email: email.toLowerCase().trim(),
-              fullName,
-              avatarUrl: googleAvatar,
-              role: 'host',
-              customSlug: slug,
-              brandColor: '#0084FF',
-              pricingMode: 'free',
-              isPro: false,
-              tier: 'free',
-            };
-
-            await supabase.from('letitbeme_users').insert({
-              id: newId,
-              email: newProfile.email,
-              full_name: newProfile.fullName,
-              custom_slug: newProfile.customSlug,
-              brand_color: newProfile.brandColor,
-              is_pro: false,
-              tier: 'free',
-            });
-
-            setUser(newProfile);
-          }
-        } catch (err) {
-          console.warn('OAuth database sync note:', err);
-        }
+      if (session?.user) {
+        syncSessionUser(session.user);
       }
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [user]);
+  }, []);
+
+  const syncSessionUser = async (sessionUser: any) => {
+    const email = sessionUser.email || '';
+    const fullName =
+      sessionUser.user_metadata?.full_name ||
+      sessionUser.user_metadata?.name ||
+      email.split('@')[0];
+
+    const googleAvatar =
+      sessionUser.user_metadata?.avatar_url ||
+      sessionUser.user_metadata?.picture ||
+      sessionUser.user_metadata?.avatar ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
+
+    try {
+      const { data: existingUser } = await supabase
+        .from('letitbeme_users')
+        .select('*')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      if (existingUser) {
+        const finalAvatar = googleAvatar || existingUser.avatar_url;
+
+        const profile: UserProfile = {
+          id: existingUser.id,
+          email: existingUser.email,
+          fullName: existingUser.full_name || fullName,
+          avatarUrl: finalAvatar,
+          role: existingUser.role || 'host',
+          customSlug: existingUser.custom_slug || email.split('@')[0],
+          brandColor: existingUser.brand_color || '#0084FF',
+          pricingMode: 'free',
+          isPro: Boolean(existingUser.is_pro),
+          tier: existingUser.tier || 'free',
+          proSince: existingUser.pro_since,
+        };
+
+        // Always ensure latest Google avatar is persisted in Supabase
+        await supabase
+          .from('letitbeme_users')
+          .update({
+            avatar_url: finalAvatar,
+            full_name: profile.fullName,
+          })
+          .eq('id', existingUser.id);
+
+        setUser(profile);
+      } else {
+        const newId = sessionUser.id || `user_${Date.now()}`;
+        const slug = email.split('@')[0].replace(/[^a-zA-Z0-9-_]/g, '') || `user${Math.floor(Math.random()*1000)}`;
+        const newProfile: UserProfile = {
+          id: newId,
+          email: email.toLowerCase().trim(),
+          fullName,
+          avatarUrl: googleAvatar,
+          role: 'host',
+          customSlug: slug,
+          brandColor: '#0084FF',
+          pricingMode: 'free',
+          isPro: false,
+          tier: 'free',
+        };
+
+        await supabase.from('letitbeme_users').insert({
+          id: newId,
+          email: newProfile.email,
+          full_name: newProfile.fullName,
+          avatar_url: newProfile.avatarUrl,
+          role: 'host',
+          custom_slug: newProfile.customSlug,
+          brand_color: newProfile.brandColor,
+          is_pro: false,
+          tier: 'free',
+        });
+
+        setUser(newProfile);
+      }
+    } catch (err) {
+      console.warn('OAuth database sync note:', err);
+    }
+  };
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     if (!isSupabaseConfigured) {
@@ -150,6 +170,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/?view=presenter`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
@@ -234,6 +258,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: newId,
               email: cleanEmail,
               full_name: chosenName,
+              avatar_url: userProfile.avatarUrl,
+              role,
               custom_slug: chosenSlug,
               brand_color: '#0084FF',
               is_pro: false,
@@ -298,6 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .update({
             full_name: updated.fullName,
             custom_slug: updated.customSlug,
+            avatar_url: updated.avatarUrl,
             brand_color: updated.brandColor,
             is_pro: updated.isPro,
             tier: updated.tier,

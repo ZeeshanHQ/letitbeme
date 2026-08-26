@@ -259,11 +259,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         
         {/* Avatar / Device Check Circle */}
         <div className="relative">
-          {user?.avatarUrl && !user.avatarUrl.includes('dicebear') ? (
+          {user?.avatarUrl ? (
             <img
               src={user.avatarUrl}
               alt={user?.fullName || 'Host'}
-              className="h-28 w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover"
+              referrerPolicy="no-referrer"
+              className="h-28 w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover bg-slate-800"
             />
           ) : (
             <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
@@ -392,11 +393,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] flex flex-col items-center justify-center p-6 text-center space-y-4">
           
           <div className="relative">
-            {user?.avatarUrl && !user.avatarUrl.includes('dicebear') ? (
+            {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={user?.fullName || 'Host'}
-                className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover"
+                referrerPolicy="no-referrer"
+                className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-slate-700 shadow-2xl object-cover bg-slate-800"
               />
             ) : (
               <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
