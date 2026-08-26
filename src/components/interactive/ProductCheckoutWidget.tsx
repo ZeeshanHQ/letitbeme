@@ -2,26 +2,31 @@ import React, { useState } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
-  Lock,
   ArrowRight,
   Sparkles,
   CreditCard,
-  ExternalLink,
-  Crown,
-  Download,
-  Video,
-  Globe2,
   Tag,
-  ShoppingBag,
+  Edit3,
+  Image as ImageIcon,
+  Check,
+  X,
+  Upload,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
 import { recordReferralSale } from '../../lib/referral';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const ProductCheckoutWidget: React.FC = () => {
-  const { triggerCheckoutCelebration, offerTitle, offerPrice } = useStream();
-  const { user, upgradeToPro } = useAuth();
-  
+  const {
+    triggerCheckoutCelebration,
+    offerTitle,
+    setOfferTitle,
+    offerPrice,
+    setOfferPrice,
+  } = useStream();
+  const { user } = useAuth();
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [customStripeUrl, setCustomStripeUrl] = useState(
@@ -30,40 +35,112 @@ export const ProductCheckoutWidget: React.FC = () => {
   const [showStripeConfig, setShowStripeConfig] = useState(false);
   const [hasPurchasedHostOffer, setHasPurchasedHostOffer] = useState(false);
 
+  // Custom Host Product Details
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
+  const [productTitle, setProductTitle] = useState(
+    localStorage.getItem('letitbeme_product_title') || offerTitle || 'Live Masterclass & Resource Kit'
+  );
+  const [productPrice, setProductPrice] = useState(
+    localStorage.getItem('letitbeme_product_price') || offerPrice.toString() || '49.00'
+  );
+  const [productDescription, setProductDescription] = useState(
+    localStorage.getItem('letitbeme_product_desc') ||
+      'Direct access to live workshop materials, templates, and full private session recordings.'
+  );
+  const [productImage, setProductImage] = useState(
+    localStorage.getItem('letitbeme_product_image') ||
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop'
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   const userEmail = user?.email || 'attendee@example.com';
   const isHost = user?.role === 'host';
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (isSupabaseConfigured) {
+      try {
+        setIsUploadingImage(true);
+        const ext = file.name.split('.').pop() || 'png';
+        const filePath = `products/${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('letitbeme_assets')
+          .upload(filePath, file, { upsert: true });
+
+        if (!uploadError) {
+          const { data: publicData } = supabase.storage
+            .from('letitbeme_assets')
+            .getPublicUrl(filePath);
+
+          if (publicData?.publicUrl) {
+            setProductImage(publicData.publicUrl);
+            localStorage.setItem('letitbeme_product_image', publicData.publicUrl);
+          }
+        }
+      } catch (err) {
+        console.warn('Image upload note:', err);
+      } finally {
+        setIsUploadingImage(false);
+      }
+    } else {
+      // Local object preview fallback
+      const localUrl = URL.createObjectURL(file);
+      setProductImage(localUrl);
+      localStorage.setItem('letitbeme_product_image', localUrl);
+    }
+  };
+
+  const handleSaveProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOfferTitle(productTitle.trim() || 'Live Masterclass');
+    setOfferPrice(parseFloat(productPrice) || 49.0);
+    localStorage.setItem('letitbeme_product_title', productTitle.trim());
+    localStorage.setItem('letitbeme_product_price', productPrice.trim());
+    localStorage.setItem('letitbeme_product_desc', productDescription.trim());
+    localStorage.setItem('letitbeme_product_image', productImage.trim());
+    setIsEditingProduct(false);
+
+    // Broadcast updated product offer to attendees
+    const bc = new BroadcastChannel('letitbeme_stream_sync');
+    bc.postMessage({
+      type: 'SYNC_OFFER',
+      payload: {
+        name: productTitle.trim(),
+        price: parseFloat(productPrice) || 49.0,
+        tagline: productDescription.trim(),
+        imageUrl: productImage.trim(),
+      },
+    });
+  };
 
   const handleBuyHostOffer = async () => {
     setIsProcessing(true);
     setErrorMessage(null);
 
-    // If host configured a custom Stripe link
+    // If host configured a custom payment link
     if (customStripeUrl.trim().startsWith('http')) {
       const checkoutUrl = new URL(customStripeUrl);
       if (user?.email) {
         checkoutUrl.searchParams.set('prefilled_email', user.email);
       }
       window.open(checkoutUrl.toString(), '_blank');
-      await recordReferralSale(Number(offerPrice || 19.99), userEmail);
+      await recordReferralSale(Number(productPrice || 49.0), userEmail);
       setHasPurchasedHostOffer(true);
       triggerCheckoutCelebration();
       setIsProcessing(false);
       return;
     }
 
-    // Direct in-stream purchase simulation
-    await recordReferralSale(Number(offerPrice || 19.99), userEmail);
+    // Instant in-stream purchase confirmation
+    await recordReferralSale(Number(productPrice || 49.0), userEmail);
     setTimeout(() => {
       setHasPurchasedHostOffer(true);
       triggerCheckoutCelebration();
       setIsProcessing(false);
     }, 750);
-  };
-
-  const handleSaveStripeLink = (url: string) => {
-    setCustomStripeUrl(url);
-    localStorage.setItem('letitbeme_stripe_payment_link', url.trim());
-    setShowStripeConfig(false);
   };
 
   if (hasPurchasedHostOffer) {
@@ -82,10 +159,10 @@ export const ProductCheckoutWidget: React.FC = () => {
 
           <div className="space-y-1">
             <h3 className="text-base font-heading font-bold text-slate-900 tracking-tight">
-              You&apos;re Confirmed for {offerTitle || 'Masterclass Pass'}!
+              You&apos;re Confirmed for {productTitle || 'Live Offer'}!
             </h3>
             <p className="text-xs text-slate-500 font-light leading-relaxed">
-              Your purchase receipt and meeting access materials have been dispatched to <strong className="text-slate-800 font-mono">{userEmail}</strong>.
+              Your access receipt and download credentials have been sent to <strong className="text-slate-800 font-mono">{userEmail}</strong>.
             </p>
           </div>
 
@@ -98,33 +175,179 @@ export const ProductCheckoutWidget: React.FC = () => {
         </div>
 
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-          <span>Stripe Secure Transaction</span>
+          <span>Secure Transaction</span>
           <span className="text-emerald-600 font-semibold">100% Verified</span>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="h-full flex flex-col justify-between space-y-4 font-sans text-left p-1">
-      {/* Header Info */}
-      <div className="space-y-3">
+  // Host Product Edit Form
+  if (isEditingProduct) {
+    return (
+      <form onSubmit={handleSaveProduct} className="p-4 space-y-4 font-sans text-left animate-fade-in">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1 text-[11px] font-mono text-[#0084FF] font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-            <Tag className="h-3 w-3" />
-            <span>EXCLUSIVE LIVE OFFER</span>
-          </span>
-          <span className="text-xs font-mono text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-            Special Stream Rate
-          </span>
+          <h3 className="text-sm font-heading font-bold text-slate-900">
+            Customize Live Product Offer
+          </h3>
+          <button
+            type="button"
+            onClick={() => setIsEditingProduct(false)}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
+        <div className="space-y-3 text-xs">
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Product / Pass Title
+            </label>
+            <input
+              type="text"
+              required
+              value={productTitle}
+              onChange={(e) => setProductTitle(e.target.value)}
+              placeholder="e.g. Executive Design Masterclass"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Price (USD $)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={productPrice}
+                onChange={(e) => setProductPrice(e.target.value)}
+                placeholder="49.00"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono font-bold focus:bg-white focus:border-[#0084FF] outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Upload Product Image
+              </label>
+              <label className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer text-slate-600 font-semibold truncate">
+                <Upload className="h-3.5 w-3.5 text-[#0084FF]" />
+                <span className="truncate">{isUploadingImage ? 'Uploading...' : 'Choose Image'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Or Image URL Link
+            </label>
+            <input
+              type="url"
+              value={productImage}
+              onChange={(e) => setProductImage(e.target.value)}
+              placeholder="https://example.com/cover.jpg"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono focus:bg-white focus:border-[#0084FF] outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Short Description / Deliverables
+            </label>
+            <textarea
+              rows={2}
+              value={productDescription}
+              onChange={(e) => setProductDescription(e.target.value)}
+              placeholder="What will attendees receive after purchase?"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setIsEditingProduct(false)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <Check className="h-3.5 w-3.5" />
+            <span>Save Product</span>
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col justify-between space-y-4 font-sans text-left p-1">
+      {/* Header & Product Banner */}
+      <div className="space-y-3">
+        
+        {/* Product Image Cover */}
+        {productImage && (
+          <div className="relative w-full h-32 sm:h-36 rounded-2xl overflow-hidden border border-slate-200 shadow-sm group">
+            <img
+              src={productImage}
+              alt={productTitle}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+            <div className="absolute top-2.5 left-2.5">
+              <span className="flex items-center gap-1 text-[10px] font-mono text-white font-bold bg-[#0084FF] px-2.5 py-0.5 rounded-full shadow-md">
+                <Tag className="h-3 w-3" />
+                <span>LIVE STREAM DEAL</span>
+              </span>
+            </div>
+
+            {/* Host Edit Icon Overlay */}
+            <div className="absolute top-2.5 right-2.5">
+              <button
+                type="button"
+                onClick={() => setIsEditingProduct(true)}
+                className="p-1.5 rounded-xl bg-white/90 hover:bg-white text-slate-800 text-xs font-semibold flex items-center gap-1 shadow-md cursor-pointer transition-all"
+                title="Edit Product Details & Image"
+              >
+                <Edit3 className="h-3.5 w-3.5 text-[#0084FF]" />
+                <span className="text-[11px] hidden sm:inline">Edit Offer</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div>
-          <h3 className="text-base sm:text-lg font-heading font-bold text-slate-900 tracking-tight">
-            {offerTitle || 'VIP All-Access Pass & Masterclass'}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base sm:text-lg font-heading font-bold text-slate-900 tracking-tight">
+              {productTitle || 'Live Masterclass & Resource Kit'}
+            </h3>
+            {!productImage && (
+              <button
+                type="button"
+                onClick={() => setIsEditingProduct(true)}
+                className="p-1 text-slate-400 hover:text-[#0084FF] cursor-pointer"
+                title="Edit Offer"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
           <p className="text-xs text-slate-500 font-light mt-0.5 leading-relaxed">
-            Get immediate access to host resources, private recordings, and premium interactive meeting materials.
+            {productDescription}
           </p>
         </div>
 
@@ -132,43 +355,36 @@ export const ProductCheckoutWidget: React.FC = () => {
         <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
-              In-Stream Deal
+              In-Stream Price
             </span>
             <div className="flex items-baseline gap-1.5 pt-0.5">
               <span className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
-                ${offerPrice || 19.99}
+                ${productPrice || '49.00'}
               </span>
               <span className="text-xs font-mono text-slate-400">USD</span>
             </div>
           </div>
 
-          <span className="text-[10px] font-mono font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-xl shadow-sm">
-            Instant 1-Click Access
+          <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl shadow-sm">
+            Instant Delivery
           </span>
         </div>
 
-        {/* Features */}
-        <ul className="space-y-1.5 pt-0.5">
-          {[
-            'Full Session Recording & Slide Deck (.pdf)',
-            'Direct Q&A Priority with Host',
-            '100% Direct Payout via Secure Stripe Gateway',
-          ].map((feature, idx) => (
-            <li key={idx} className="flex items-center gap-2 text-xs text-slate-700 font-normal">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#0084FF] shrink-0" />
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
+        {/* Features Checklist */}
+        <div className="space-y-2 pt-1 text-xs text-slate-700">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-[#0084FF] shrink-0" />
+            <span>Instant Download Link dispatched to your email</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-[#0084FF] shrink-0" />
+            <span>Direct access to full session recordings &amp; resources</span>
+          </div>
+        </div>
       </div>
 
-      {/* Stripe Payment Gateway Action */}
-      <div className="space-y-3 pt-2">
-        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-          <span className="text-slate-500">Checkout as:</span>
-          <strong className="text-slate-900 font-mono">{userEmail}</strong>
-        </div>
-
+      {/* Checkout Form Actions */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
         {errorMessage && (
           <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
             {errorMessage}
@@ -183,7 +399,7 @@ export const ProductCheckoutWidget: React.FC = () => {
           className="w-full py-3 px-4 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
         >
           <CreditCard className="h-3.5 w-3.5" />
-          <span>{isProcessing ? 'Processing...' : `Pay Now — $${offerPrice || 19.99}`}</span>
+          <span>{isProcessing ? 'Processing...' : `Pay Now — $${productPrice || '49.00'}`}</span>
           <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
         </button>
 
@@ -198,16 +414,16 @@ export const ProductCheckoutWidget: React.FC = () => {
               onClick={() => setShowStripeConfig(!showStripeConfig)}
               className="hover:text-slate-600 underline cursor-pointer"
             >
-              {customStripeUrl ? 'Edit Host Stripe Link' : 'Set Host Stripe Link'}
+              {customStripeUrl ? 'Custom Stripe Link' : 'Add Stripe Link'}
             </button>
           )}
         </div>
 
-        {/* Host Stripe Payment Link Config */}
+        {/* Host Payment Link Config */}
         {showStripeConfig && isHost && (
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs animate-fade-in">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-900">Your Stripe Payment Link (buy.stripe.com)</span>
+              <span className="font-semibold text-slate-900">Custom Payment URL (buy.stripe.com)</span>
               <button
                 type="button"
                 onClick={() => setShowStripeConfig(false)}
@@ -217,7 +433,7 @@ export const ProductCheckoutWidget: React.FC = () => {
               </button>
             </div>
             <p className="text-[11px] text-slate-500 font-light">
-              Paste your Stripe Payment Link from your Stripe Dashboard to receive 100% direct payouts to your bank.
+              Paste your custom Stripe Payment Link to receive 100% direct payouts to your bank account.
             </p>
             <div className="flex items-center gap-2">
               <input
@@ -229,7 +445,10 @@ export const ProductCheckoutWidget: React.FC = () => {
               />
               <button
                 type="button"
-                onClick={() => handleSaveStripeLink(customStripeUrl)}
+                onClick={() => {
+                  localStorage.setItem('letitbeme_stripe_payment_link', customStripeUrl.trim());
+                  setShowStripeConfig(false);
+                }}
                 className="px-3 py-1.5 bg-[#0084FF] text-white rounded-xl text-xs font-semibold cursor-pointer"
               >
                 Save

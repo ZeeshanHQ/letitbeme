@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import {
+  Radio,
+  MonitorPlay,
+  TrendingUp,
   Settings,
   LogOut,
   ArrowRight,
   Crown,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsModal } from './SettingsModal';
@@ -49,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
         <div
           className="w-full max-w-[1380px] h-[58px] px-4 sm:px-6 flex items-center justify-between transition-all duration-300"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.78)',
+            backgroundColor: 'rgba(255, 255, 255, 0.82)',
             backdropFilter: 'blur(40px)',
             WebkitBackdropFilter: 'blur(40px)',
             borderRadius: '20px',
@@ -75,8 +79,51 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
             </button>
           </div>
 
-          {/* Center Navigation Links (Only on Landing Page) */}
-          {currentView === 'landing' && (
+          {/* Center Navigation / View Capsule Switcher */}
+          {user && currentView !== 'landing' ? (
+            /* Luxury Glassmorphism View Switcher */
+            <nav className="hidden sm:flex items-center p-1 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200/80 text-xs font-semibold shadow-inner">
+              <button
+                type="button"
+                onClick={() => handleViewChange('presenter')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  currentView === 'presenter'
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Radio className={`h-3.5 w-3.5 ${currentView === 'presenter' ? 'text-[#0084FF]' : 'text-slate-400'}`} />
+                <span>Meeting Studio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewChange('stage')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  currentView === 'stage'
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <MonitorPlay className={`h-3.5 w-3.5 ${currentView === 'stage' ? 'text-[#0084FF]' : 'text-slate-400'}`} />
+                <span>Audience View</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewChange('referral')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  currentView === 'referral'
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <TrendingUp className={`h-3.5 w-3.5 ${currentView === 'referral' ? 'text-[#0084FF]' : 'text-slate-400'}`} />
+                <span>Ambassador</span>
+              </button>
+            </nav>
+          ) : currentView === 'landing' ? (
+            /* Public Landing Page Links */
             <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[#475569] font-['Inter',sans-serif]">
               <button
                 type="button"
@@ -107,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                 Pricing
               </button>
             </nav>
-          )}
+          ) : null}
 
           {/* Right Actions */}
           <div className="flex items-center gap-2.5">
@@ -144,12 +191,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) =
                     <span className="font-semibold text-slate-900 hidden sm:inline font-sans">
                       {user.fullName}
                     </span>
-                    {user.isPro && (
+                    
+                    {/* Free vs Pro Badge */}
+                    {user.isPro ? (
                       <span className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-500/15 border border-blue-400/40 rounded-full text-[10px] font-mono font-bold text-[#0084FF]">
                         <Crown className="h-2.5 w-2.5 fill-[#0084FF] text-[#0084FF]" />
                         <span>PRO</span>
                       </span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 px-2 py-0.5 bg-slate-200/90 border border-slate-300 rounded-full text-[10px] font-mono font-bold text-slate-600">
+                        <Zap className="h-2.5 w-2.5 text-amber-500" />
+                        <span>FREE</span>
+                      </span>
                     )}
+
                     <span className="text-[10px] font-mono text-[#0084FF] bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
                       @{user.customSlug}
                     </span>
