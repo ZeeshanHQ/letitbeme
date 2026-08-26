@@ -342,18 +342,25 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const peerConnectionsRef = useRef<Record<string, RTCPeerConnection>>({});
+  const pendingIceCandidatesRef = useRef<Record<string, RTCIceCandidateInit[]>>({});
+  const supabaseRealtimeChannelRef = useRef<any>(null);
+
+  // Helper to send Supabase Realtime broadcasts on the single active subscribed channel
+  const sendSupabaseBroadcast = (event: string, payload: any) => {
+    if (isSupabaseConfigured && supabaseRealtimeChannelRef.current) {
+      supabaseRealtimeChannelRef.current.send({
+        type: 'broadcast',
+        event,
+        payload,
+      });
+    }
+  };
 
   // Helper to send WebRTC signals across all 3 channels
   const sendWebRTCSignal = (signal: WebRTCSignal) => {
     channel?.postMessage({ type: 'WEBRTC_SIGNAL', payload: signal });
     localStorage.setItem('letitbeme_webrtc_signal', JSON.stringify({ ...signal, ts: Date.now() }));
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'WEBRTC_SIGNAL',
-        payload: signal,
-      });
-    }
+    sendSupabaseBroadcast('WEBRTC_SIGNAL', signal);
   };
 
   const createPeerConnection = (targetPeerId: string, isInitiator: boolean) => {
@@ -364,8 +371,13 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionsRef.current[targetPeerId] = pc;
+      pendingIceCandidatesRef.current[targetPeerId] = [];
 
-      // Attach local stream tracks
+      // Ensure audio & video transceivers are configured
+      pc.addTransceiver('video', { direction: 'sendrecv' });
+      pc.addTransceiver('audio', { direction: 'sendrecv' });
+
+      // Attach local stream tracks if available
       if (localCamStream) {
         localCamStream.getTracks().forEach((track) => {
           pc.addTrack(track, localCamStream);
@@ -395,12 +407,8 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          setRemoteStreams((prev) => {
-            const next = { ...prev };
-            delete next[targetPeerId];
-            return next;
-          });
+        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          handleGuestLeft(targetPeerId);
         }
       };
 
@@ -437,6 +445,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const pc = createPeerConnection(signal.senderId, false);
       if (pc) {
         await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+        
+        // Process any queued candidates
+        const queued = pendingIceCandidatesRef.current[signal.senderId] || [];
+        for (const cand of queued) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch {}
+        }
+        pendingIceCandidatesRef.current[signal.senderId] = [];
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         sendWebRTCSignal({
@@ -451,15 +467,48 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const pc = peerConnectionsRef.current[signal.senderId];
       if (pc && pc.signalingState !== 'stable') {
         await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+        
+        // Process any queued candidates
+        const queued = pendingIceCandidatesRef.current[signal.senderId] || [];
+        for (const cand of queued) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch {}
+        }
+        pendingIceCandidatesRef.current[signal.senderId] = [];
       }
     } else if (signal.type === 'ICE_CANDIDATE') {
       const pc = peerConnectionsRef.current[signal.senderId];
-      if (pc && signal.data) {
+      if (pc && pc.remoteDescription) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(signal.data));
         } catch {}
+      } else {
+        if (!pendingIceCandidatesRef.current[signal.senderId]) {
+          pendingIceCandidatesRef.current[signal.senderId] = [];
+        }
+        pendingIceCandidatesRef.current[signal.senderId].push(signal.data);
       }
     }
+  };
+
+  const handleGuestLeft = (guestId: string) => {
+    setJoinedParticipants((prev) => prev.filter((p) => p.id !== guestId));
+    setViewerCount((prev) => Math.max(1, prev - 1));
+
+    // Close WebRTC peer connection
+    if (peerConnectionsRef.current[guestId]) {
+      try {
+        peerConnectionsRef.current[guestId].close();
+      } catch {}
+      delete peerConnectionsRef.current[guestId];
+    }
+    delete pendingIceCandidatesRef.current[guestId];
+
+    // Remove remote stream
+    setRemoteStreams((prev) => {
+      const next = { ...prev };
+      delete next[guestId];
+      return next;
+    });
   };
 
   // Synchronize across both BroadcastChannel and Supabase Realtime
@@ -517,26 +566,6 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    const handleGuestLeft = (guestId: string) => {
-      setJoinedParticipants((prev) => prev.filter((p) => p.id !== guestId));
-      setViewerCount((prev) => Math.max(1, prev - 1));
-
-      // Close WebRTC peer connection
-      if (peerConnectionsRef.current[guestId]) {
-        try {
-          peerConnectionsRef.current[guestId].close();
-        } catch {}
-        delete peerConnectionsRef.current[guestId];
-      }
-
-      // Remove remote stream
-      setRemoteStreams((prev) => {
-        const next = { ...prev };
-        delete next[guestId];
-        return next;
-      });
-    };
-
     const handleMeetingEnded = () => {
       setIsGuestJoined(false);
       setIsWaitingInLobby(false);
@@ -575,10 +604,11 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     // Supabase Realtime WebSocket for cross-device / mobile phone synchronization
-    let realtimeChannel: any = null;
     if (isSupabaseConfigured) {
-      realtimeChannel = supabase
-        .channel('letitbeme_room_sync')
+      const channelInstance = supabase.channel('letitbeme_room_sync');
+      supabaseRealtimeChannelRef.current = channelInstance;
+
+      channelInstance
         .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
         .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId, event.payload?.guest))
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
@@ -592,7 +622,11 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setAgendaState(event.payload);
           localStorage.setItem('letitbeme_agenda', JSON.stringify(event.payload));
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Supabase Realtime Mesh Connected');
+          }
+        });
     }
 
     // Cross-tab and cross-profile storage sync listener
@@ -642,7 +676,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       bc.close();
       window.removeEventListener('storage', handleStorage);
-      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      if (supabaseRealtimeChannelRef.current) {
+        supabase.removeChannel(supabaseRealtimeChannelRef.current);
+        supabaseRealtimeChannelRef.current = null;
+      }
     };
   }, []);
 
@@ -1013,13 +1050,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('letitbeme_last_knock', JSON.stringify({ payload: guest, ts: Date.now() }));
 
     // 3. Supabase Realtime (cross-device, mobile phones)
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'KNOCK_JOIN',
-        payload: guest,
-      });
-    }
+    sendSupabaseBroadcast('KNOCK_JOIN', guest);
   };
 
   const admitParticipant = (id: string) => {
@@ -1058,14 +1089,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
       localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
-      
-      if (isSupabaseConfigured) {
-        supabase.channel('letitbeme_room_sync').send({
-          type: 'broadcast',
-          event: 'SYNC_JOINED_PARTICIPANTS',
-          payload: updated,
-        });
-      }
+      sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
       return updated;
     });
 
@@ -1073,27 +1097,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const admitPayload = { guestId: id, guest: newJoined };
     channel?.postMessage({ type: 'ADMIT_GUEST', payload: admitPayload });
     localStorage.setItem('letitbeme_last_admit', JSON.stringify({ ...admitPayload, ts: Date.now() }));
-    
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'ADMIT_GUEST',
-        payload: admitPayload,
-      });
-    }
+    sendSupabaseBroadcast('ADMIT_GUEST', admitPayload);
   };
 
   const denyParticipant = (id: string) => {
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     channel?.postMessage({ type: 'DENY_GUEST', payload: { guestId: id } });
     localStorage.setItem('letitbeme_last_deny', JSON.stringify({ guestId: id, ts: Date.now() }));
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'DENY_GUEST',
-        payload: { guestId: id },
-      });
-    }
+    sendSupabaseBroadcast('DENY_GUEST', { guestId: id });
   };
 
   const endMeeting = () => {
@@ -1111,14 +1122,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     channel?.postMessage({ type: 'MEETING_ENDED', payload });
     localStorage.setItem('letitbeme_meeting_ended', JSON.stringify(payload));
-
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'MEETING_ENDED',
-        payload,
-      });
-    }
+    sendSupabaseBroadcast('MEETING_ENDED', payload);
   };
 
   const leaveMeeting = () => {
@@ -1151,14 +1155,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     channel?.postMessage({ type: 'GUEST_LEFT', payload });
     localStorage.setItem('letitbeme_guest_left', JSON.stringify(payload));
-
-    if (isSupabaseConfigured) {
-      supabase.channel('letitbeme_room_sync').send({
-        type: 'broadcast',
-        event: 'GUEST_LEFT',
-        payload,
-      });
-    }
+    sendSupabaseBroadcast('GUEST_LEFT', payload);
   };
 
   return (

@@ -273,35 +273,35 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
         )
       ) : (
         /* 2. Remote Participant Real WebRTC Video & Audio Stream */
-        hasRemoteVideo ? (
-          <video
-            ref={(el) => {
-              if (el && remoteStream && el.srcObject !== remoteStream) {
-                el.srcObject = remoteStream;
-                el.play().catch(() => {});
-              }
-            }}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <>
-            {/* Play remote member voice audio through speaker/headphones */}
-            {hasRemoteAudio && (
-              <audio
-                ref={(el) => {
-                  if (el && remoteStream && el.srcObject !== remoteStream) {
-                    el.srcObject = remoteStream;
-                    el.play().catch(() => {});
-                  }
-                }}
-                autoPlay
-                playsInline
-              />
-            )}
-            
-            {/* Remote Member Stylized Avatar */}
+        <>
+          {/* Always mount dedicated audio element to guarantee remote voice audio playback across all browsers & mobile devices */}
+          {hasRemoteAudio && (
+            <audio
+              ref={(el) => {
+                if (el && remoteStream && el.srcObject !== remoteStream) {
+                  el.srcObject = remoteStream;
+                  el.play().catch(() => {});
+                }
+              }}
+              autoPlay
+              playsInline
+            />
+          )}
+
+          {hasRemoteVideo ? (
+            <video
+              ref={(el) => {
+                if (el && remoteStream && el.srcObject !== remoteStream) {
+                  el.srcObject = remoteStream;
+                  el.play().catch(() => {});
+                }
+              }}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            /* Remote Member Stylized Avatar when camera is off */
             <div className="flex flex-col items-center justify-center relative space-y-2 select-none">
               {isActiveSpeaker && (
                 <>
@@ -334,8 +334,8 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
                 </strong>
               )}
             </div>
-          </>
-        )
+          )}
+        </>
       )}
 
       {/* 3. Bottom-Left Corner Name Tag Badge (Google Meet & Zoom Standard) */}
