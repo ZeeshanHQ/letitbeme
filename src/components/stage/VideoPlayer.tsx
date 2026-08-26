@@ -552,6 +552,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               </p>
             </div>
 
+            {/* Waiting Guests Alert Banner if people knocked while host was in green room */}
+            {waitingParticipants.length > 0 && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-center justify-between gap-3 animate-pulse">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center">
+                    {waitingParticipants.length}
+                  </div>
+                  <div className="text-left">
+                    <strong className="text-xs font-bold block text-slate-900">
+                      {waitingParticipants.length === 1 ? '1 guest is waiting in the lobby' : `${waitingParticipants.length} guests are waiting in the lobby`}
+                    </strong>
+                    <span className="text-[11px] text-slate-500">
+                      {waitingParticipants.map((p) => p.name).join(', ')}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+                  Waiting
+                </span>
+              </div>
+            )}
+
             <button
               type="button"
               disabled={isConnecting}
@@ -863,26 +885,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             onClick={() => {
               if (showHostControls) {
                 setIsMeetingStarted(false);
-                setShowProSummary(true);
+                // Only show post-meeting pro summary if meeting ran for at least 5 minutes (300 seconds)
+                if (streamDuration >= 300) {
+                  setShowProSummary(true);
+                }
                 if (isLive) toggleLiveStatus();
               } else {
                 setIsGuestJoined(false);
                 setHasKnocked(false);
               }
             }}
-            className="p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30"
+            className="p-2 sm:px-3 sm:py-2 rounded-2xl font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30 shrink-0"
           >
             <PhoneOff className="h-4 w-4" />
-            <span className="hidden sm:inline">{showHostControls ? 'End Meeting' : 'Leave Meeting'}</span>
+            <span className="hidden sm:inline">{showHostControls ? 'End Meeting' : 'Leave'}</span>
           </button>
 
-          <div className="h-5 w-px bg-slate-800" />
+          <div className="h-5 w-px bg-slate-800 shrink-0" />
 
           {/* Native OS Picture-in-Picture */}
           <button
             type="button"
             onClick={toggleNativePiP}
-            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer shrink-0"
             title="Pop out video (Picture-in-Picture)"
           >
             <PictureInPicture2 className="h-4 w-4" />
@@ -892,10 +917,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
-            title="Toggle Fullscreen"
+            className="p-2 sm:p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer shrink-0"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
           >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {isFullscreen ? <Minimize2 className="h-4 w-4 text-[#0084FF]" /> : <Maximize2 className="h-4 w-4" />}
           </button>
 
         </div>

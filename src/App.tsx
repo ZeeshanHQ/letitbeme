@@ -56,12 +56,14 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-['Plus_Jakarta_Sans',sans-serif] selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
-      {/* Top Universal Minimalist Navbar */}
-      <Navbar
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-      />
+      {/* Top Universal Minimalist Navbar - Hidden for attendees on meeting links to provide full-screen immersive meeting */}
+      {currentView !== 'stage' && (
+        <Navbar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+        />
+      )}
 
       {/* Main Viewport */}
       <main className="flex-1">
