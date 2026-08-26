@@ -341,10 +341,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   // 1. GUEST WAITING ROOM LOBBY (When knocked)
   if (!showHostControls && isWaitingInLobby && hasKnocked) {
     return (
-      <div className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
+      <div className="relative w-full h-full min-h-[400px] sm:min-h-[480px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-5 sm:p-8 text-center text-white space-y-5 sm:space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="relative">
-          <div className="h-24 w-24 rounded-full bg-blue-500/20 border-2 border-[#0084FF] flex items-center justify-center animate-pulse">
-            <Radio className="h-10 w-10 text-[#0084FF]" />
+          <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-blue-500/20 border-2 border-[#0084FF] flex items-center justify-center animate-pulse">
+            <Radio className="h-8 w-8 sm:h-10 sm:w-10 text-[#0084FF]" />
           </div>
           <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -353,11 +353,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
 
         <div className="space-y-2 max-w-md">
-          <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-heading font-bold text-white tracking-tight">
             Waiting for the host to let you in...
           </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            The host has received your request with a chime. You will be connected automatically when admitted.
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+            The host has received your join request. You will be connected automatically when admitted.
           </p>
         </div>
 
@@ -371,12 +371,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   // 2. GUEST JOIN SCREEN (Ask for Name before joining)
   if (!showHostControls && !isGuestJoined) {
     return (
-      <div className="relative w-full h-full min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
+      <div className="relative w-full h-full min-h-[420px] sm:min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-5 sm:p-8 text-center text-white space-y-5 sm:space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
         
         {/* Device Check Preview */}
         <div className="relative">
           {isCamOn && localCamStream ? (
-            <div className="h-28 w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
               <video
                 ref={guestLobbyCamRef}
                 autoPlay
@@ -386,18 +386,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               />
             </div>
           ) : (
-            <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl font-heading font-bold">
               {(guestName || 'G').charAt(0).toUpperCase()}
             </div>
           )}
 
-          <div className="absolute bottom-0 right-0 p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
-            {isMicOn ? <Mic className="h-4 w-4 text-emerald-400" /> : <MicOff className="h-4 w-4 text-rose-500" />}
+          <div className="absolute bottom-0 right-0 p-1.5 sm:p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
+            {isMicOn ? <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-400" /> : <MicOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-500" />}
           </div>
         </div>
 
         <div className="space-y-1 max-w-md">
-          <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-heading font-bold text-white tracking-tight">
             Ready to join the meeting?
           </h3>
           <p className="text-xs text-slate-400">

@@ -14,7 +14,7 @@ import { RoomNotFound } from './RoomNotFound';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const StageCanvas: React.FC = () => {
-  const { layoutMode, setLayoutMode } = useStream();
+  const { layoutMode, setLayoutMode, isWaitingInLobby, activeWidget } = useStream();
   const { user } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<'interactive' | 'chat'>('interactive');
@@ -28,20 +28,17 @@ export const StageCanvas: React.FC = () => {
     const roomParam = params.get('room');
     
     if (!roomParam) {
-      // Default to valid if no specific room query
       setIsRoomValid(true);
       return;
     }
 
     setRoomSlug(roomParam);
 
-    // If host is viewing their own room
     if (user?.customSlug && user.customSlug.toLowerCase() === roomParam.toLowerCase()) {
       setIsRoomValid(true);
       return;
     }
 
-    // Check if room exists in Supabase
     const checkRoom = async () => {
       if (!isSupabaseConfigured) {
         setIsRoomValid(true);
@@ -69,7 +66,6 @@ export const StageCanvas: React.FC = () => {
         if (roomMatch) {
           setIsRoomValid(true);
         } else {
-          // If slug has invalid chars or not found
           setIsRoomValid(false);
         }
       } catch {
@@ -95,7 +91,7 @@ export const StageCanvas: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-6 flex flex-col justify-between font-sans">
+    <div className="relative min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-2.5 sm:p-5 lg:p-6 flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif]">
       
       {/* Ultra-Wide Premium Canvas Layout Container */}
       <div className="max-w-[1780px] 2xl:max-w-[1900px] mx-auto w-full flex-1 flex flex-col">
@@ -182,44 +178,51 @@ export const StageCanvas: React.FC = () => {
         </div>
 
         {/* MOBILE & TABLET STACKED VIEW (< 1024px) */}
-        <div className="flex lg:hidden flex-col gap-4 flex-1">
-          <div className="w-full h-[280px] sm:h-[380px] shrink-0">
+        <div className="flex lg:hidden flex-col gap-3.5 flex-1">
+          
+          {/* Responsive Mobile Video Player Container */}
+          <div className="w-full min-h-[260px] sm:min-h-[360px] flex flex-col shrink-0">
             <VideoPlayer showHostControls={false} />
           </div>
 
-          <div className="flex items-center justify-between px-1">
+          {/* Audience Reaction Emojis & Segmented Tab Switcher */}
+          <div className="flex items-center justify-between gap-2 px-1">
             <AudienceReactions />
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            
+            <div className="flex items-center bg-slate-200/80 p-1 rounded-2xl border border-slate-200 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setMobileActiveTab('interactive')}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                   mobileActiveTab === 'interactive'
                     ? 'bg-white text-[#0084FF] shadow-sm'
-                    : 'text-slate-600'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Interactive App
+                App ({activeWidget})
               </button>
               <button
                 type="button"
                 onClick={() => setMobileActiveTab('chat')}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                   mobileActiveTab === 'chat'
                     ? 'bg-white text-[#0084FF] shadow-sm'
-                    : 'text-slate-600'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Chat
+                Live Chat
               </button>
             </div>
           </div>
 
-          <div className="flex-1 min-h-[440px]">
+          {/* Interactive Widget / Live Chat Active Mobile Tab */}
+          <div className="flex-1 min-h-[420px] bg-white rounded-3xl border border-slate-200/80 shadow-sm p-3 sm:p-4 overflow-hidden">
             {mobileActiveTab === 'interactive' ? (
               <InteractiveLayer />
             ) : (
-              <LiveChat />
+              <div className="h-[420px]">
+                <LiveChat />
+              </div>
             )}
           </div>
         </div>
