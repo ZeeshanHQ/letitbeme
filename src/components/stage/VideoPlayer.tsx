@@ -97,6 +97,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
   const containerRef = useRef<HTMLDivElement>(null);
   const camVideoRef = useRef<HTMLVideoElement>(null);
+  const greenRoomCamRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipCamVideoRef = useRef<HTMLVideoElement>(null);
   
@@ -117,10 +118,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     if (camVideoRef.current && localCamStream) {
       camVideoRef.current.srcObject = localCamStream;
     }
+    if (greenRoomCamRef.current && localCamStream) {
+      greenRoomCamRef.current.srcObject = localCamStream;
+    }
     if (pipCamVideoRef.current && localCamStream) {
       pipCamVideoRef.current.srcObject = localCamStream;
     }
-  }, [localCamStream, isCamOn]);
+  }, [localCamStream, isCamOn, isMeetingStarted]);
 
   // Bind screen stream
   useEffect(() => {
@@ -259,7 +263,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         
         {/* Avatar / Device Check Circle */}
         <div className="relative">
-          {user?.avatarUrl ? (
+          {isCamOn && localCamStream ? (
+            <div className="h-28 w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
+              <video
+                ref={greenRoomCamRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover mirror"
+              />
+            </div>
+          ) : user?.avatarUrl ? (
             <img
               src={user.avatarUrl}
               alt={user?.fullName || 'Host'}

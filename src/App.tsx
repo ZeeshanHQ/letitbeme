@@ -10,11 +10,34 @@ import { InactivityTimeoutModal } from './components/common/InactivityTimeoutMod
 import { AuthModal } from './components/auth/AuthModal';
 
 const AppContent: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>('landing');
+  // Initialize view from URL param, saved localStorage, or active user
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view') as AppView;
+    if (viewParam && ['landing', 'stage', 'presenter', 'referral'].includes(viewParam)) {
+      return viewParam;
+    }
+    const roomParam = params.get('room');
+    if (roomParam) {
+      return 'stage';
+    }
+    const saved = localStorage.getItem('letitbeme_active_view') as AppView;
+    if (saved && ['landing', 'stage', 'presenter', 'referral'].includes(saved)) {
+      return saved;
+    }
+    const hasUser = Boolean(localStorage.getItem('letitbeme_active_user'));
+    return hasUser ? 'presenter' : 'landing';
+  });
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user } = useAuth();
-  const { isPresenterRole, setIsPresenterRole } = useStream();
+  const { setIsPresenterRole } = useStream();
   const prevUserRef = useRef(user);
+
+  // Persist current view to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('letitbeme_active_view', currentView);
+  }, [currentView]);
 
   // Auto-redirect to presenter dashboard upon user login
   useEffect(() => {
@@ -36,7 +59,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
-      {/* Top Universal Navbar */}
+      {/* Top Universal Minimalist Navbar */}
       <Navbar currentView={currentView} setCurrentView={setCurrentView} />
 
       {/* Main Viewport */}

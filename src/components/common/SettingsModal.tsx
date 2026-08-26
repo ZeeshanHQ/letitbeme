@@ -13,7 +13,8 @@ import {
   MonitorUp,
   MessageSquare,
   RotateCcw,
-  Sparkles,
+  TrendingUp,
+  Plus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStream } from '../../context/StreamContext';
@@ -36,7 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setMuteOnEntry,
   } = useStream();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'host_controls' | 'stripe'>('host_controls');
+  const [activeTab, setActiveTab] = useState<'profile' | 'host_controls' | 'stripe' | 'affiliates'>('host_controls');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [customSlug, setCustomSlug] = useState(user?.customSlug || 'live');
   const [brandColor, setBrandColor] = useState(user?.brandColor || '#0084FF');
@@ -46,6 +47,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [isSaved, setIsSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+
+  // Affiliate / Tracking Link builder
+  const [newCampaignName, setNewCampaignName] = useState('');
+  const [commissionRate, setCommissionRate] = useState(15);
+  const [customTrackingLinks, setCustomTrackingLinks] = useState([
+    { id: '1', name: 'Twitter / X Promo', slug: 'x-promo', clicks: 142, sales: 8, revenue: 159.92 },
+    { id: '2', name: 'LinkedIn Masterclass', slug: 'li-exec', clicks: 310, sales: 24, revenue: 479.76 },
+  ]);
 
   if (!isOpen || !user) return null;
 
@@ -64,6 +73,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setIsRotating(false);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleCreateTrackingLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCampaignName.trim()) return;
+    const slug = newCampaignName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'camp';
+    setCustomTrackingLinks([
+      ...customTrackingLinks,
+      {
+        id: Date.now().toString(),
+        name: newCampaignName.trim(),
+        slug,
+        clicks: 0,
+        sales: 0,
+        revenue: 0,
+      },
+    ]);
+    setNewCampaignName('');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -102,7 +129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 Meeting Room &amp; Host Settings
               </h3>
               <p className="text-xs text-slate-400 font-light">
-                Configure persistent meeting link, host admission rules, and permissions
+                Configure persistent meeting link, host admission rules, and affiliate tracking
               </p>
             </div>
           </div>
@@ -116,11 +143,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-5 pt-3 border-b border-slate-100 flex items-center gap-4 text-xs font-semibold">
+        <div className="px-5 pt-3 border-b border-slate-100 flex items-center gap-4 text-xs font-semibold overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('host_controls')}
-            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
               activeTab === 'host_controls'
                 ? 'border-[#0084FF] text-[#0084FF]'
                 : 'border-transparent text-slate-400 hover:text-slate-700'
@@ -133,7 +160,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
-            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
               activeTab === 'profile'
                 ? 'border-[#0084FF] text-[#0084FF]'
                 : 'border-transparent text-slate-400 hover:text-slate-700'
@@ -146,7 +173,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           <button
             type="button"
             onClick={() => setActiveTab('stripe')}
-            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
               activeTab === 'stripe'
                 ? 'border-[#0084FF] text-[#0084FF]'
                 : 'border-transparent text-slate-400 hover:text-slate-700'
@@ -155,10 +182,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <Link className="h-3.5 w-3.5" />
             <span>Payment Link</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('affiliates')}
+            className={`pb-2.5 flex items-center gap-1.5 transition-all border-b-2 cursor-pointer shrink-0 ${
+              activeTab === 'affiliates'
+                ? 'border-[#0084FF] text-[#0084FF]'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span>Affiliates &amp; Tracking</span>
+          </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto flex-1 text-left">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 text-left">
           
           {/* Host Controls Tab */}
           {activeTab === 'host_controls' && (
@@ -300,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Profile & Handle Tab */}
           {activeTab === 'profile' && (
-            <div className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Host Full Name
@@ -333,14 +373,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   />
                 </div>
               </div>
-            </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#0084FF] text-white hover:bg-[#0074E0] cursor-pointer"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </form>
           )}
 
           {/* Stripe Payment Tab */}
           {activeTab === 'stripe' && (
-            <div className="space-y-3">
+            <form onSubmit={handleSave} className="space-y-3">
               <label className="block text-xs font-semibold text-slate-700">
-                Custom Stripe Payment Link URL
+                Custom Stripe Payment Link URL (buy.stripe.com)
               </label>
               <input
                 type="url"
@@ -352,6 +401,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <p className="text-[11px] text-slate-400">
                 When attendees click the in-stream Pro offer, they will check out through this direct link.
               </p>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#0084FF] text-white hover:bg-[#0074E0] cursor-pointer"
+                >
+                  Save Payment Link
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Affiliates & Tracking Links Tab */}
+          {activeTab === 'affiliates' && (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-1">
+                <h4 className="text-xs font-bold text-[#0084FF]">
+                  Smart Affiliate &amp; Tracking Engine
+                </h4>
+                <p className="text-[11px] text-slate-600">
+                  Share unique referral links with partners. When invited attendees buy in-stream, commissions are tracked automatically.
+                </p>
+              </div>
+
+              {/* Create Link Form */}
+              <form onSubmit={handleCreateTrackingLink} className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Create New Tracking Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newCampaignName}
+                    onChange={(e) => setNewCampaignName(e.target.value)}
+                    placeholder="e.g. YouTube Live Description"
+                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Create</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Active Links List */}
+              <div className="space-y-2 pt-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
+                  Active Referral Channels ({customTrackingLinks.length})
+                </span>
+                <div className="space-y-2">
+                  {customTrackingLinks.map((item) => (
+                    <div key={item.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                      <div>
+                        <strong className="text-slate-900 block">{item.name}</strong>
+                        <span className="text-[11px] font-mono text-[#0084FF]">
+                          letitbe.me/?ref={item.slug}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-emerald-600 block">${item.revenue.toFixed(2)}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{item.clicks} clicks • {item.sales} sales</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -362,19 +479,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
             >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-500/20"
-            >
-              {isSaved ? <Check className="h-3.5 w-3.5" /> : null}
-              <span>{isSaved ? 'Settings Saved' : 'Save Changes'}</span>
+              Done
             </button>
           </div>
 
-        </form>
+        </div>
       </div>
     </div>
   );

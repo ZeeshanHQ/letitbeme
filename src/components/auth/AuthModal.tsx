@@ -3,8 +3,6 @@ import {
   X,
   Mail,
   User,
-  Radio,
-  Share2,
   Sparkles,
   ArrowRight,
   CheckCircle2,
@@ -12,7 +10,6 @@ import {
   ArrowLeft,
   ShieldCheck,
   RefreshCw,
-  Zap,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../common/Button';
@@ -26,25 +23,20 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  initialRole = 'host',
 }) => {
   const {
     signInWithGoogle,
     sendEmailOtp,
     verifyEmailOtp,
     signInAsGuest,
-    updateProfile,
     isLoading,
   } = useAuth();
 
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [step, setStep] = useState<'input' | 'verify_otp' | 'onboarding'>('input');
+  const [step, setStep] = useState<'input' | 'verify_otp'>('input');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'host' | 'ambassador'>(initialRole);
   const [otpCode, setOtpCode] = useState('');
-  const [customSlug, setCustomSlug] = useState('');
-  const [streamTopic, setStreamTopic] = useState('Tech & Product Demos');
   
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -83,91 +75,85 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.trim().length !== 6) {
-      setErrorMessage('Please enter the full 6-digit code');
+    if (otpCode.length < 6) {
+      setErrorMessage('Please enter the full 6-digit verification code');
       return;
     }
     setErrorMessage('');
 
-    const res = await verifyEmailOtp(email.trim(), otpCode.trim(), fullName, role);
+    const res = await verifyEmailOtp(email.trim(), otpCode.trim(), fullName, 'host');
     if (!res.success) {
-      setErrorMessage(res.error || 'Invalid code');
-    } else {
-      if (res.isNewUser && authMode === 'signup') {
-        setCustomSlug(email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, ''));
-        setStep('onboarding');
-      } else {
-        onClose();
-      }
+      setErrorMessage(res.error || 'Verification failed. Please check the code.');
+      return;
     }
-  };
 
-  const handleOnboardingComplete = async () => {
-    await updateProfile({
-      customSlug: customSlug.trim() || 'my-live',
-      pricingMode: 'free',
-    });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-obsidian/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans text-left">
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-md w-full p-6 sm:p-8 space-y-5 animate-slide-up relative">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-md w-full p-6 sm:p-8 space-y-6 animate-slide-up relative">
         
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-6 right-6 p-1.5 rounded-full text-slate-400 hover:text-obsidian hover:bg-slate-100 transition-all cursor-pointer"
+          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
 
-        {/* Auth Mode Tabs: Sign In vs Sign Up */}
+        {/* STEP 1: INITIAL INPUT / GOOGLE LOGIN */}
         {step === 'input' && (
-          <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('signin');
-                setErrorMessage('');
-              }}
-              className={`flex-1 py-2 rounded-xl transition-all ${
-                authMode === 'signin'
-                  ? 'bg-white text-obsidian shadow-sm'
-                  : 'text-slate-500 hover:text-obsidian'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('signup');
-                setErrorMessage('');
-              }}
-              className={`flex-1 py-2 rounded-xl transition-all ${
-                authMode === 'signup'
-                  ? 'bg-white text-obsidian shadow-sm'
-                  : 'text-slate-500 hover:text-obsidian'
-              }`}
-            >
-              Create Free Account
-            </button>
-          </div>
-        )}
-
-        {/* STEP 1: AUTH INPUT */}
-        {step === 'input' && (
-          <>
-            <div className="space-y-1">
-              <h3 className="text-2xl font-heading font-bold text-obsidian tracking-tight">
-                {authMode === 'signin' ? 'Sign in to LetItBeMe' : 'Create your workspace'}
+          <div className="space-y-5 text-left">
+            {/* Header */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-mono font-bold text-[#0084FF]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>LETITBEME CLOUD</span>
+                </span>
+              </div>
+              <h3 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+                {authMode === 'signin' ? 'Welcome Back' : 'Create Host Account'}
               </h3>
-              <p className="text-xs text-slate-500 font-light">
+              <p className="text-xs text-slate-500 font-light leading-relaxed">
                 {authMode === 'signin'
-                  ? 'Access your saved broadcast channel and analytics'
-                  : 'Launch interactive streams with 0% platform fees'}
+                  ? 'Sign in to access your persistent meeting rooms & analytics'
+                  : 'Start interactive 1080p meetings with built-in Stripe sales'}
               </p>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100/80 border border-slate-200/80 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('signin');
+                  setErrorMessage('');
+                }}
+                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                  authMode === 'signin'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('signup');
+                  setErrorMessage('');
+                }}
+                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                  authMode === 'signup'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Sign Up
+              </button>
             </div>
 
             {/* Google OAuth Button */}
@@ -175,7 +161,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
-              className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-obsidian font-semibold text-xs shadow-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer disabled:opacity-50"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -200,13 +186,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
               <div className="h-px flex-1 bg-slate-100" />
-              <span>OR USE WORK EMAIL CODE</span>
+              <span>OR WORK EMAIL CODE</span>
               <div className="h-px flex-1 bg-slate-100" />
             </div>
 
             {/* Form */}
             <form onSubmit={handleSendOtp} className="space-y-3">
-              {/* Only show Full Name in Sign Up mode */}
               {authMode === 'signup' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -219,8 +204,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Liam Chen"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-obsidian focus:bg-white focus:border-solar-500 focus:outline-none font-sans"
+                      placeholder="e.g. Sarah Jenkins"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none font-sans"
                     />
                   </div>
                 </div>
@@ -237,60 +222,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="liam@company.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-obsidian focus:bg-white focus:border-solar-500 focus:outline-none font-sans"
+                    placeholder="sarah@company.com"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none font-sans"
                   />
                 </div>
               </div>
 
-              {/* Only show Role Selection in Sign Up mode */}
-              {authMode === 'signup' && (
-                <div className="space-y-1.5 pt-1">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Select Your Account Role
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRole('host')}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        role === 'host'
-                          ? 'border-solar-500 bg-solar-50/80 shadow-sm'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-obsidian">
-                        <Radio className="h-3.5 w-3.5 text-solar-500" />
-                        <span>Host / Presenter</span>
-                      </div>
-                      <span className="block text-[10px] text-slate-500 font-light mt-0.5">
-                        Broadcast live, share screen & sell in-stream
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRole('ambassador')}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        role === 'ambassador'
-                          ? 'border-solar-500 bg-solar-50/80 shadow-sm'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-obsidian">
-                        <Share2 className="h-3.5 w-3.5 text-solar-amber" />
-                        <span>Ambassador</span>
-                      </div>
-                      <span className="block text-[10px] text-slate-500 font-light mt-0.5">
-                        Share referral links & track commissions
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {errorMessage && (
-                <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs animate-shake">
                   {errorMessage}
                 </div>
               )}
@@ -298,73 +237,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <Button
                 type="submit"
                 variant="primary"
-                className="w-full rounded-xl font-semibold text-xs py-2.5 shadow-solar-sm hover:shadow-solar-md"
-                isLoading={isLoading}
-                rightIcon={<ArrowRight className="h-4 w-4" />}
+                size="md"
+                className="w-full rounded-xl text-xs font-semibold py-2.5 justify-center shadow-md shadow-blue-500/20 bg-[#0084FF]"
+                disabled={isLoading}
+                rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
               >
-                {authMode === 'signin' ? 'Sign In with 6-Digit Code' : 'Create Free Account'}
+                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
               </Button>
             </form>
-          </>
+
+            {/* Quick Guest Demo Option */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  signInAsGuest('host');
+                  onClose();
+                }}
+                className="text-[11px] text-slate-400 hover:text-slate-700 font-mono transition-colors cursor-pointer"
+              >
+                Or explore instantly as <span className="underline font-bold text-slate-600">Demo Guest Host</span>
+              </button>
+            </div>
+          </div>
         )}
 
         {/* STEP 2: VERIFY OTP CODE */}
         {step === 'verify_otp' && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-5 text-left">
             <button
               type="button"
               onClick={() => {
                 setStep('input');
                 setErrorMessage('');
               }}
-              className="flex items-center gap-1 text-xs text-slate-500 hover:text-obsidian cursor-pointer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back to email</span>
             </button>
 
-            <div className="space-y-1">
-              <h3 className="text-2xl font-heading font-bold text-obsidian tracking-tight">
-                Enter verification code
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-700">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>SECURITY CHECK</span>
+                </span>
+              </div>
+              <h3 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+                Enter 6-Digit Code
               </h3>
-              <p className="text-xs text-slate-500 font-light">
-                We sent a 6-digit code to <strong className="text-obsidian">{email}</strong>
+              <p className="text-xs text-slate-500 font-light leading-relaxed">
+                We sent a verification code to <strong className="text-slate-800 font-mono">{email}</strong>.
               </p>
             </div>
 
-            {/* Dev Hint if testing */}
             {devCodeHint && (
-              <div className="p-2.5 rounded-xl bg-solar-50 border border-solar-200 text-solar-900 text-xs flex items-center justify-between font-mono">
-                <span>Code for quick test: <strong>{devCodeHint}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => setOtpCode(devCodeHint)}
-                  className="text-[11px] underline text-solar-700 font-sans font-semibold cursor-pointer"
-                >
-                  Auto-fill
-                </button>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-[#0084FF]">
+                <span>Dev Auto-fill Code: </span>
+                <strong className="font-mono text-sm tracking-widest">{devCodeHint}</strong>
               </div>
             )}
 
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  6-Digit OTP Code
-                </label>
                 <input
                   type="text"
                   maxLength={6}
                   autoFocus
                   required
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="• • • • • •"
-                  className="w-full text-center tracking-[12px] text-2xl font-mono py-3 rounded-2xl border border-slate-300 bg-slate-50 text-obsidian focus:bg-white focus:border-solar-500 focus:outline-none"
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="123456"
+                  className="w-full text-center text-2xl font-mono font-bold tracking-[8px] py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[#0084FF] focus:outline-none"
                 />
               </div>
 
               {errorMessage && (
-                <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                   {errorMessage}
                 </div>
               )}
@@ -372,82 +322,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <Button
                 type="submit"
                 variant="primary"
-                className="w-full rounded-xl py-2.5 text-xs font-semibold shadow-solar-sm hover:shadow-solar-md"
-                isLoading={isLoading}
-                rightIcon={<ShieldCheck className="h-4 w-4" />}
+                size="md"
+                className="w-full rounded-xl text-xs font-semibold py-2.5 justify-center shadow-md shadow-blue-500/20 bg-[#0084FF]"
+                disabled={isLoading}
               >
-                {authMode === 'signin' ? 'Verify & Sign In' : 'Verify & Setup Channel'}
+                {isLoading ? 'Verifying...' : 'Verify & Continue'}
               </Button>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-xs text-solar-600 hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  <span>Resend code</span>
-                </button>
-              </div>
             </form>
-          </div>
-        )}
-
-        {/* STEP 3: CREATOR ONBOARDING (SIGN UP ONLY) */}
-        {step === 'onboarding' && (
-          <div className="space-y-5 animate-fade-in">
-            <div className="space-y-1">
-              <h3 className="text-2xl font-heading font-bold text-obsidian tracking-tight">
-                Customize your stream channel
-              </h3>
-              <p className="text-xs text-slate-500 font-light">
-                Claim your personal broadcast link and start streaming
-              </p>
-            </div>
-
-            {/* Custom URL Slug */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700">
-                Your Public Live Stream URL
-              </label>
-              <div className="flex items-center px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-500">
-                <span className="text-slate-400">letitbe.me/@</span>
-                <input
-                  type="text"
-                  value={customSlug}
-                  onChange={(e) => setCustomSlug(e.target.value)}
-                  className="bg-transparent border-none focus:outline-none text-solar-600 font-bold w-full pl-0.5"
-                  placeholder="your-name"
-                />
-              </div>
-            </div>
-
-            {/* Stream Topic */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700">
-                Primary Broadcast Category
-              </label>
-              <select
-                value={streamTopic}
-                onChange={(e) => setStreamTopic(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white text-obsidian focus:outline-none focus:border-solar-500 font-sans"
-              >
-                <option value="Tech & Product Demos">Tech & Product Demos</option>
-                <option value="Founder Masterclasses">Founder Masterclasses</option>
-                <option value="Interactive Workshops">Interactive Workshops</option>
-                <option value="Sales & VIP Consultations">Sales & VIP Consultations</option>
-              </select>
-            </div>
-
-            <Button
-              variant="primary"
-              size="md"
-              className="w-full rounded-xl shadow-solar-sm hover:shadow-solar-md"
-              onClick={handleOnboardingComplete}
-              rightIcon={<CheckCircle2 className="h-4 w-4" />}
-            >
-              Launch My Workspace
-            </Button>
           </div>
         )}
 
