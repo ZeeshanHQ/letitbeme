@@ -6,7 +6,6 @@ import { LandingPage } from './components/landing/LandingPage';
 import { StageCanvas } from './components/stage/StageCanvas';
 import { PresenterStudio } from './components/presenter/PresenterStudio';
 import { ReferralDashboard } from './components/dashboard/ReferralDashboard';
-import { InactivityTimeoutModal } from './components/common/InactivityTimeoutModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { trackReferralClick } from './lib/referral';
 
@@ -92,9 +91,6 @@ const AppContent: React.FC = () => {
 
         {currentView === 'referral' && <ReferralDashboard />}
       </main>
-
-      {/* Global Inactivity Timeout Guard */}
-      {currentView === 'presenter' && <InactivityTimeoutModal />}
 
       {/* Global Auth Modal for Get Started Flow */}
       <AuthModal
