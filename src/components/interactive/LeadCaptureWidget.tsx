@@ -8,8 +8,10 @@ import {
   Send,
   HelpCircle,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useStream } from '../../context/StreamContext';
 
 interface QAItem {
   id: string;
@@ -29,7 +31,10 @@ interface AgendaItem {
 
 export const LeadCaptureWidget: React.FC = () => {
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'qa' | 'agenda'>('qa');
+  const { isPresenterRole } = useStream();
+  const isHost = user?.role === 'host' || isPresenterRole;
+
+  const [activeSubTab, setActiveSubTab] = useState<'qa' | 'agenda'>('agenda');
 
   // Live Q&A questions state (Clean initial state: ZERO fake questions)
   const [newQuestion, setNewQuestion] = useState('');
@@ -38,7 +43,7 @@ export const LeadCaptureWidget: React.FC = () => {
   // Meeting Agenda state
   const [newAgendaItem, setNewAgendaItem] = useState('');
   const [agenda, setAgenda] = useState<AgendaItem[]>([
-    { id: '1', title: '1. Welcome & Goals', isDone: false },
+    { id: '1', title: '1. Welcome & Meeting Overview', isDone: true },
     { id: '2', title: '2. Live Demo & Interactive Review', isDone: false },
     { id: '3', title: '3. Q&A & Action Items', isDone: false },
   ]);
@@ -77,18 +82,20 @@ export const LeadCaptureWidget: React.FC = () => {
   };
 
   const handleToggleAnswered = (id: string) => {
+    if (!isHost) return;
     setQuestions(
       questions.map((q) => (q.id === id ? { ...q, isAnswered: !q.isAnswered } : q))
     );
   };
 
   const handleDeleteQuestion = (id: string) => {
+    if (!isHost) return;
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
   const handleAddAgendaItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAgendaItem.trim()) return;
+    if (!isHost || !newAgendaItem.trim()) return;
     setAgenda([
       ...agenda,
       { id: `agenda-${Date.now()}`, title: newAgendaItem.trim(), isDone: false },
@@ -97,81 +104,93 @@ export const LeadCaptureWidget: React.FC = () => {
   };
 
   const handleToggleAgenda = (id: string) => {
+    if (!isHost) return;
     setAgenda(
       agenda.map((item) => (item.id === id ? { ...item, isDone: !item.isDone } : item))
     );
   };
 
   const handleDeleteAgenda = (id: string) => {
+    if (!isHost) return;
     setAgenda(agenda.filter((item) => item.id !== id));
   };
 
+  const completedCount = agenda.filter((i) => i.isDone).length;
+
   return (
-    <div className="h-full flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden font-sans text-left">
-      {/* Top Header & Sub-Tab Switcher */}
-      <div className="p-3 bg-[#FAF9F6] border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('qa')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeSubTab === 'qa'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            Q&amp;A ({questions.length})
-          </button>
+    <div className="h-full flex flex-col justify-between space-y-3 font-sans text-left">
+      {/* Sub-Tabs Switcher */}
+      <div className="flex items-center justify-between gap-2 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shrink-0">
+        <div className="flex items-center gap-1 flex-1">
           <button
             type="button"
             onClick={() => setActiveSubTab('agenda')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeSubTab === 'agenda'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            Agenda ({agenda.filter((a) => a.isDone).length}/{agenda.length})
+            <ListTodo className="h-3.5 w-3.5" />
+            <span>Agenda ({completedCount}/{agenda.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('qa')}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeSubTab === 'qa'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+            <span>Q&amp;A ({questions.length})</span>
           </button>
         </div>
 
-        <span className="text-[11px] font-mono text-slate-400">
-          {activeSubTab === 'qa' ? 'Live Audience Questions' : 'Session Checklist'}
+        <span className="text-[10px] font-mono text-slate-400 hidden sm:inline pr-2">
+          {activeSubTab === 'agenda' ? (isHost ? 'Host Manageable' : 'Session Checklist') : 'Open Q&A'}
         </span>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {activeSubTab === 'qa' ? (
-          /* Q&A Sub-Tab */
-          <div className="space-y-3">
+          /* Live Q&A Questions */
+          <div className="space-y-2.5">
             {questions.length === 0 ? (
-              <div className="py-12 px-4 text-center space-y-3">
-                <div className="h-12 w-12 rounded-2xl bg-blue-50 text-[#0084FF] flex items-center justify-center mx-auto">
-                  <HelpCircle className="h-6 w-6" />
+              <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/80 text-center space-y-2">
+                <div className="h-9 w-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto text-[#0084FF]">
+                  <HelpCircle className="h-4 w-4" />
                 </div>
-                <h4 className="text-sm font-semibold text-slate-800">No questions asked yet</h4>
-                <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                  Be the first to ask! Attendees and hosts can post questions and vote them up.
+                <h4 className="text-xs font-bold text-slate-800">No Questions Yet</h4>
+                <p className="text-[11px] text-slate-500 font-light max-w-xs mx-auto">
+                  Ask a question below. Top upvoted questions will be answered live by the host.
                 </p>
               </div>
             ) : (
               questions.map((q) => (
                 <div
                   key={q.id}
-                  className={`p-3.5 rounded-2xl border transition-all ${
+                  className={`p-3.5 rounded-2xl border transition-all space-y-2 ${
                     q.isAnswered
-                      ? 'bg-emerald-50/60 border-emerald-200/80 opacity-75'
-                      : 'bg-white border-slate-200/90 shadow-sm hover:border-blue-300'
+                      ? 'bg-emerald-50/40 border-emerald-200/80'
+                      : 'bg-white border-slate-200/90 shadow-sm'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold text-slate-900">{q.sender}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-slate-900">{q.sender}</span>
                         <span className="text-[10px] text-slate-400 font-mono">{q.time}</span>
+                        {q.isAnswered && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold font-mono">
+                            Answered
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                      <p className="text-xs text-slate-700 leading-relaxed font-normal">
                         {q.question}
                       </p>
                     </div>
@@ -179,10 +198,10 @@ export const LeadCaptureWidget: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleToggleUpvote(q.id)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         q.hasUpvoted
-                          ? 'bg-blue-50 border-blue-300 text-[#0084FF]'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                          ? 'bg-[#0084FF] text-white shadow-sm'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                     >
                       <ThumbsUp className="h-3 w-3" />
@@ -190,27 +209,29 @@ export const LeadCaptureWidget: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAnswered(q.id)}
-                      className={`flex items-center gap-1 font-medium cursor-pointer ${
-                        q.isAnswered ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-700'
-                      }`}
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>{q.isAnswered ? 'Answered' : 'Mark as Answered'}</span>
-                    </button>
+                  {isHost && (
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAnswered(q.id)}
+                        className={`text-[11px] font-semibold flex items-center gap-1 cursor-pointer ${
+                          q.isAnswered ? 'text-slate-400 hover:text-slate-600' : 'text-emerald-600 hover:text-emerald-700'
+                        }`}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>{q.isAnswered ? 'Mark Unanswered' : 'Mark Answered'}</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteQuestion(q.id)}
-                      className="text-slate-300 hover:text-rose-600 transition-colors p-1 cursor-pointer"
-                      title="Delete Question"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        className="text-slate-300 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+                        title="Delete Question"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -221,38 +242,64 @@ export const LeadCaptureWidget: React.FC = () => {
             {agenda.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200/90 shadow-sm"
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm"
               >
-                <button
-                  type="button"
-                  onClick={() => handleToggleAgenda(item.id)}
-                  className="flex items-center gap-3 text-left cursor-pointer flex-1"
-                >
-                  <div
-                    className={`h-5 w-5 rounded-lg border flex items-center justify-center transition-all ${
-                      item.isDone
-                        ? 'bg-[#0084FF] border-[#0084FF] text-white'
-                        : 'border-slate-300 bg-slate-50'
-                    }`}
+                {isHost ? (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAgenda(item.id)}
+                    className="flex items-center gap-3 text-left cursor-pointer flex-1"
                   >
-                    {item.isDone && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    <div
+                      className={`h-5 w-5 rounded-lg border flex items-center justify-center transition-all ${
+                        item.isDone
+                          ? 'bg-[#0084FF] border-[#0084FF] text-white'
+                          : 'border-slate-300 bg-slate-50'
+                      }`}
+                    >
+                      {item.isDone && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    </div>
+                    <span
+                      className={`text-xs font-semibold ${
+                        item.isDone ? 'line-through text-slate-400' : 'text-slate-800'
+                      }`}
+                    >
+                      {item.title}
+                    </span>
+                  </button>
+                ) : (
+                  /* Member Read-Only View (No Clicking / No Modifying Host Agenda) */
+                  <div className="flex items-center gap-3 text-left flex-1 select-none">
+                    <div
+                      className={`h-5 w-5 rounded-lg border flex items-center justify-center ${
+                        item.isDone
+                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                          : 'border-slate-300 bg-slate-50'
+                      }`}
+                    >
+                      {item.isDone && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    </div>
+                    <span
+                      className={`text-xs font-semibold ${
+                        item.isDone ? 'line-through text-slate-400' : 'text-slate-800'
+                      }`}
+                    >
+                      {item.title}
+                    </span>
                   </div>
-                  <span
-                    className={`text-xs font-medium ${
-                      item.isDone ? 'line-through text-slate-400' : 'text-slate-800'
-                    }`}
-                  >
-                    {item.title}
-                  </span>
-                </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => handleDeleteAgenda(item.id)}
-                  className="text-slate-300 hover:text-rose-500 p-1 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {/* Trashcan Delete is STRICTLY HOST-ONLY */}
+                {isHost && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAgenda(item.id)}
+                    className="text-slate-300 hover:text-rose-500 p-1 transition-colors cursor-pointer"
+                    title="Delete Agenda Item"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -267,8 +314,8 @@ export const LeadCaptureWidget: React.FC = () => {
               type="text"
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="Ask a question to the meeting..."
-              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+              placeholder="Ask a question to the host..."
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none font-sans"
             />
             <button
               type="submit"
@@ -279,14 +326,15 @@ export const LeadCaptureWidget: React.FC = () => {
               <Send className="h-3 w-3" />
             </button>
           </form>
-        ) : (
+        ) : isHost ? (
+          /* Adding Agenda Items is STRICTLY HOST-ONLY */
           <form onSubmit={handleAddAgendaItem} className="flex gap-2">
             <input
               type="text"
               value={newAgendaItem}
               onChange={(e) => setNewAgendaItem(e.target.value)}
-              placeholder="Add agenda topic..."
-              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none"
+              placeholder="Add new agenda topic..."
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-[#0084FF] focus:outline-none font-sans"
             />
             <button
               type="submit"
@@ -297,6 +345,11 @@ export const LeadCaptureWidget: React.FC = () => {
               <span>Add</span>
             </button>
           </form>
+        ) : (
+          /* Member Indicator */
+          <div className="text-center text-[11px] font-mono text-slate-400 py-1">
+            Session Agenda Managed by Host
+          </div>
         )}
       </div>
     </div>

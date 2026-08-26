@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   FileText,
   Copy,
@@ -6,9 +6,12 @@ import {
   Check,
   Globe,
   PenTool,
-  ShieldCheck,
+  Eraser,
+  RotateCcw,
   Sparkles,
   Lock,
+  Palette,
+  Eye,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +23,92 @@ export const SandboxedIframe: React.FC = () => {
   const isHost = user?.role === 'host' || isPresenterRole;
   const [activeTool, setActiveTool] = useState<'notes' | 'whiteboard' | 'custom_url'>('notes');
   const [copied, setCopied] = useState(false);
+
+  // Whiteboard Canvas State
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushColor, setBrushColor] = useState('#0084FF');
+  const [brushWidth, setBrushWidth] = useState(3);
+  const [isEraser, setIsEraser] = useState(false);
+
+  const colors = ['#0F172A', '#0084FF', '#8B5CF6', '#10B981', '#EF4444', '#F59E0B'];
+
+  // Initialize Canvas
+  useEffect(() => {
+    if (activeTool !== 'whiteboard') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas dimensions
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio || 800;
+    canvas.height = rect.height * window.devicePixelRatio || 500;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // White background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+  }, [activeTool]);
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.strokeStyle = isEraser ? '#FFFFFF' : brushColor;
+    ctx.lineWidth = isEraser ? brushWidth * 4 : brushWidth;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+  };
+
+  const handleDownloadDrawing = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `whiteboard-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
 
   const handleCopyNotes = () => {
     navigator.clipboard.writeText(meetingNotes);
@@ -82,6 +171,7 @@ export const SandboxedIframe: React.FC = () => {
           </button>
         </div>
 
+        {/* Notes Export Controls */}
         {activeTool === 'notes' && (
           <div className="flex items-center gap-1.5">
             <button
@@ -114,12 +204,38 @@ export const SandboxedIframe: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Whiteboard Controls */}
+        {activeTool === 'whiteboard' && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={clearCanvas}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-rose-600 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer transition-all"
+              title="Clear Whiteboard"
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span>Clear</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadDrawing}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer transition-all"
+              title="Save Whiteboard Drawing as PNG"
+            >
+              <Download className="h-3 w-3" />
+              <span>Save PNG</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Workspace Body */}
-      <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 flex flex-col">
+      <div className="flex-1 overflow-hidden p-3 bg-slate-50/50 flex flex-col">
+        
+        {/* 1. Live Shared Notes */}
         {activeTool === 'notes' && (
-          /* Live Shared Notes Editor / Viewer */
           <div className="flex-1 flex flex-col space-y-2">
             <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
               <span>{isHost ? 'Live Synchronized Meeting Notes (Markdown Editor)' : 'Host Synchronized Agenda & Notes'}</span>
@@ -137,7 +253,6 @@ export const SandboxedIframe: React.FC = () => {
                 className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed focus:outline-none focus:border-[#0084FF] shadow-sm resize-none"
               />
             ) : (
-              /* Read-only view for Attendees */
               <div className="w-full flex-1 min-h-[300px] p-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-mono leading-relaxed shadow-sm overflow-y-auto whitespace-pre-wrap select-text">
                 {meetingNotes || 'No notes added yet by host.'}
               </div>
@@ -145,29 +260,96 @@ export const SandboxedIframe: React.FC = () => {
           </div>
         )}
 
+        {/* 2. Luxury Built-In Interactive Whiteboard Canvas */}
         {activeTool === 'whiteboard' && (
-          /* Interactive Collaborative Whiteboard */
           <div className="flex-1 flex flex-col space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-              <span>Live Collaborative Canvas (Excalidraw)</span>
-              <span className="text-[10px] font-mono text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                Interactive Drawing
-              </span>
+            {/* Whiteboard Floating Toolbar */}
+            <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 shrink-0">
+              {/* Color Palette */}
+              <div className="flex items-center gap-1.5">
+                {colors.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setBrushColor(c);
+                      setIsEraser(false);
+                    }}
+                    className={`h-5 w-5 rounded-full border transition-all cursor-pointer ${
+                      brushColor === c && !isEraser
+                        ? 'scale-125 border-slate-900 shadow-sm'
+                        : 'border-white hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+
+              {/* Tools & Stroke Width */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEraser(false)}
+                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                    !isEraser
+                      ? 'bg-[#0084FF] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                  title="Draw Tool"
+                >
+                  <PenTool className="h-3.5 w-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEraser(true)}
+                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                    isEraser
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                  title="Eraser Tool"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Stroke Size */}
+                <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                  {[2, 4, 8].map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setBrushWidth(size)}
+                      className={`h-6 w-6 rounded-lg flex items-center justify-center cursor-pointer transition-all ${
+                        brushWidth === size ? 'bg-slate-200' : 'hover:bg-slate-100'
+                      }`}
+                    >
+                      <span
+                        className="rounded-full bg-slate-800"
+                        style={{ width: `${size * 1.5}px`, height: `${size * 1.5}px` }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="flex-1 min-h-[340px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner">
-              <iframe
-                src="https://excalidraw.com"
-                title="Live Whiteboard"
-                className="w-full h-full min-h-[340px] border-0"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            {/* Canvas Surface */}
+            <div className="flex-1 min-h-[340px] rounded-xl border border-slate-200 bg-white overflow-hidden shadow-inner relative cursor-crosshair">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                className="w-full h-full block touch-none"
               />
             </div>
           </div>
         )}
 
+        {/* 3. Custom App Embed */}
         {activeTool === 'custom_url' && (
-          /* Custom Embed URL */
           <div className="flex-1 flex flex-col space-y-3">
             {isHost && (
               <div className="space-y-1.5">
