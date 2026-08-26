@@ -347,23 +347,27 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     };
 
-    const handleAdmit = (guestId: string, guestObj?: WaitingParticipant) => {
+    const handleAdmit = (guestId: string, guestObj?: any) => {
       if (guestId === myGuestIdRef.current) {
         setIsWaitingInLobby(false);
         setIsGuestJoined(true);
       }
       setViewerCount((prev) => prev + 1);
 
+      const myStoredName = localStorage.getItem('letitbeme_my_guest_name');
+      const resolvedName =
+        guestId === myGuestIdRef.current && myStoredName
+          ? myStoredName
+          : guestObj?.name || 'Guest Member';
+
       setJoinedParticipants((prev) => {
-        if (prev.some((p) => p.id === guestId)) return prev;
-        const name = guestObj?.name || 'Attendee';
-        const avatar = guestObj?.avatar;
+        const filtered = prev.filter((p) => p.id !== guestId);
         return [
-          ...prev,
+          ...filtered,
           {
             id: guestId,
-            name,
-            avatar,
+            name: resolvedName,
+            avatar: guestObj?.avatar,
             isHost: false,
             isCamOn: false,
             isMicOn: true,
@@ -394,7 +398,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'SYNC_LANG') setCurrentLanguageState(payload);
       if (type === 'SYNC_MSG') setMessages((prev) => [...prev, payload]);
       if (type === 'SYNC_SUBTITLE') setLatestSubtitle(payload);
-      if (type === 'SYNC_JOINED_PARTICIPANTS') setJoinedParticipants(payload);
+      if (type === 'SYNC_JOINED_PARTICIPANTS' && Array.isArray(payload)) setJoinedParticipants(payload);
       if (type === 'SYNC_LIVE_STATUS') setIsLive(payload);
       if (type === 'KNOCK_JOIN') handleKnock(payload);
       if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId, payload.guest);
@@ -407,8 +411,11 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       realtimeChannel = supabase
         .channel('letitbeme_room_sync')
         .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
-        .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId))
+        .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId, event.payload?.guest))
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
+        .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
+          if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
+        })
         .on('broadcast', { event: 'SYNC_AGENDA' }, (event) => {
           setAgendaState(event.payload);
           localStorage.setItem('letitbeme_agenda', JSON.stringify(event.payload));
@@ -426,8 +433,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (e.key === 'letitbeme_last_admit' && e.newValue) {
         try {
-          const { guestId } = JSON.parse(e.newValue);
-          handleAdmit(guestId);
+          const parsed = JSON.parse(e.newValue);
+          handleAdmit(parsed.guestId, parsed.guest);
+        } catch {}
+      }
+      if (e.key === 'letitbeme_joined_participants' && e.newValue) {
+        try {
+          const { payload } = JSON.parse(e.newValue);
+          if (Array.isArray(payload)) setJoinedParticipants(payload);
         } catch {}
       }
       if (e.key === 'letitbeme_last_deny' && e.newValue) {
@@ -769,14 +782,17 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Waiting Room Knock / Admit / Deny
   const requestJoinRoom = async (guestName: string) => {
+    const trimmedName = guestName.trim() || 'Guest Member';
     const loc = await getAttendeeLocation();
     const guestId = myGuestIdRef.current;
+
     localStorage.setItem('letitbeme_my_guest_id', guestId);
+    localStorage.setItem('letitbeme_my_guest_name', trimmedName);
 
     const guest: WaitingParticipant = {
       id: guestId,
-      name: guestName.trim() || 'Guest Attendee',
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guestName.trim())}`,
+      name: trimmedName,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(trimmedName)}`,
       location: loc,
       joinedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
@@ -800,15 +816,62 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const admitParticipant = (id: string) => {
+    // 1. Find the waiting guest with their actual name
+    let admitted = waitingParticipants.find((p) => p.id === id);
+    if (!admitted) {
+      try {
+        const raw = localStorage.getItem('letitbeme_last_knock');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.payload?.id === id) admitted = parsed.payload;
+        }
+      } catch {}
+    }
+
+    const guestName = admitted?.name?.trim() || 'Guest Member';
+    const guestAvatar = admitted?.avatar;
+
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     setViewerCount((prev) => prev + 1);
-    channel?.postMessage({ type: 'ADMIT_GUEST', payload: { guestId: id } });
-    localStorage.setItem('letitbeme_last_admit', JSON.stringify({ guestId: id, ts: Date.now() }));
+
+    const newJoined: JoinedParticipant = {
+      id,
+      name: guestName,
+      avatar: guestAvatar,
+      isHost: false,
+      isCamOn: false,
+      isMicOn: true,
+      isSpeaking: false,
+    };
+
+    // 2. Immediately add to HOST's OWN joinedParticipants state
+    setJoinedParticipants((prev) => {
+      const filtered = prev.filter((p) => p.id !== id);
+      const updated = [...filtered, newJoined];
+      
+      channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+      localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+      
+      if (isSupabaseConfigured) {
+        supabase.channel('letitbeme_room_sync').send({
+          type: 'broadcast',
+          event: 'SYNC_JOINED_PARTICIPANTS',
+          payload: updated,
+        });
+      }
+      return updated;
+    });
+
+    // 3. Dispatch ADMIT_GUEST message
+    const admitPayload = { guestId: id, guest: newJoined };
+    channel?.postMessage({ type: 'ADMIT_GUEST', payload: admitPayload });
+    localStorage.setItem('letitbeme_last_admit', JSON.stringify({ ...admitPayload, ts: Date.now() }));
+    
     if (isSupabaseConfigured) {
       supabase.channel('letitbeme_room_sync').send({
         type: 'broadcast',
         event: 'ADMIT_GUEST',
-        payload: { guestId: id },
+        payload: admitPayload,
       });
     }
   };

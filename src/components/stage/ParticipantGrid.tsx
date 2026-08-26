@@ -86,12 +86,12 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
 
   // Grid layout classes matching Zoom & Google Meet
   const getGridColsClass = () => {
-    if (pinnedSpeakerId) return 'grid-cols-1';
-    if (totalCount === 1) return 'grid-cols-1 max-w-5xl';
-    if (totalCount === 2) return 'grid-cols-1 md:grid-cols-2 max-w-6xl';
-    if (totalCount <= 4) return 'grid-cols-1 sm:grid-cols-2 max-w-6xl';
-    if (totalCount <= 6) return 'grid-cols-2 lg:grid-cols-3 max-w-7xl';
-    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 max-w-[1700px]';
+    if (pinnedSpeakerId) return 'grid-cols-1 w-full h-full';
+    if (totalCount === 1) return 'grid-cols-1 w-full h-full max-w-5xl';
+    if (totalCount === 2) return 'grid-cols-1 md:grid-cols-2 w-full h-full max-w-6xl';
+    if (totalCount <= 4) return 'grid-cols-1 sm:grid-cols-2 w-full h-full max-w-6xl';
+    if (totalCount <= 6) return 'grid-cols-2 lg:grid-cols-3 w-full h-full max-w-7xl';
+    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 w-full h-full max-w-[1700px]';
   };
 
   // 1. Spotlight / Pin View
