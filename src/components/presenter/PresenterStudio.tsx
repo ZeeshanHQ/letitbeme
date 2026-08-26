@@ -15,12 +15,10 @@ import {
   FileText,
   Calendar,
   Layers,
-  ChevronRight,
-  ChevronLeft,
   Radio,
   Sparkles,
-  Loader2,
   Users,
+  ChevronRight,
   Maximize2,
 } from 'lucide-react';
 import { useStream, InteractiveWidgetType } from '../../context/StreamContext';
@@ -40,8 +38,6 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
     isLive,
     toggleLiveStatus,
     title,
-    layoutMode,
-    setLayoutMode,
     viewerCount,
     streamDuration,
   } = useStream();
@@ -53,7 +49,6 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
   const [isRotating, setIsRotating] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
   const [activeSideTab, setActiveSideTab] = useState<'chat' | 'widget'>('chat');
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -93,92 +88,80 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
       {/* Real-time Door Knock Animated Toast & Requests Badge */}
       <JoinRequestsToast />
 
-      {/* 1. LOADING CIRCULAR ANIMATION OVERLAY WHEN LAUNCHING MEETING ROOM */}
-      {isTransitioning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-fade-in text-white font-['Plus_Jakarta_Sans',sans-serif]">
-          <div className="relative mb-6">
-            <div className="h-28 w-28 rounded-full border-4 border-blue-500/20 border-t-[#0084FF] animate-spin flex items-center justify-center" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Radio className="h-10 w-10 text-[#0084FF] animate-pulse" />
-            </div>
-          </div>
-          <h3 className="text-xl font-heading font-bold text-white tracking-tight animate-pulse">
-            Launching Professional Meeting Room...
-          </h3>
-          <p className="text-xs text-slate-400 mt-2 font-mono">
-            Securing 1080p60 WebRTC mesh &amp; in-stream tools
-          </p>
-        </div>
-      )}
-
-      {/* 2. FULL PROFESSIONAL MEETING ROOM (When Meeting is Live) */}
+      {/* 1. ACTIVE LIVE MEETING ROOM (Light Luxury Theme, Zero Clutter) */}
       {isLive ? (
-        <div className="min-h-[calc(100vh-4rem)] bg-[#07090E] text-white flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="min-h-screen bg-[#FAF9F6] text-slate-900 flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif] p-3 sm:p-5">
           
-          {/* Top Meeting Room Header Bar */}
-          <header className="h-14 px-4 sm:px-6 border-b border-white/10 flex items-center justify-between bg-slate-950/80 backdrop-blur-xl shrink-0">
+          {/* Top Room Header Bar */}
+          <header className="h-14 px-4 sm:px-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center justify-between shrink-0 mb-4">
             <div className="flex items-center gap-3">
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <div>
-                <h2 className="text-xs sm:text-sm font-heading font-bold text-white tracking-tight truncate max-w-xs sm:max-w-md">
-                  {title || 'Executive Meeting Room'}
-                </h2>
-                <span className="text-[10px] font-mono text-slate-400">
-                  REC: {formatDuration(streamDuration)} • {viewerCount} {viewerCount === 1 ? 'Attendee' : 'Attendees'}
-                </span>
-              </div>
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>REC {formatDuration(streamDuration)}</span>
+              </span>
+
+              <div className="h-4 w-px bg-slate-200" />
+
+              <h2 className="text-xs sm:text-sm font-heading font-bold text-slate-900 tracking-tight truncate max-w-xs sm:max-w-md">
+                {title || 'Executive Meeting Room'}
+              </h2>
+
+              <span className="hidden sm:flex items-center gap-1 text-xs font-mono text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
+                <Users className="h-3 w-3 text-slate-400" />
+                <span>{viewerCount} {viewerCount === 1 ? 'Attendee' : 'Attendees'}</span>
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
+                className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200"
               >
-                {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">{copiedLink ? 'Link Copied' : 'Invite Link'}</span>
+                {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                <span className="hidden sm:inline">{copiedLink ? 'Copied' : 'Copy Invite Link'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
-                className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
                   isSidePanelOpen
-                    ? 'bg-[#0084FF] text-white border-[#0084FF]'
-                    : 'bg-white/10 text-slate-300 hover:text-white border-white/10'
+                    ? 'bg-[#0084FF] text-white border-[#0084FF] shadow-sm shadow-blue-500/20'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
                 }`}
                 title={isSidePanelOpen ? 'Hide Side Panel' : 'Show Side Panel'}
               >
-                <Layers className="h-4 w-4" />
+                <Layers className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{isSidePanelOpen ? 'Side Panel' : 'Open Tools'}</span>
               </button>
             </div>
           </header>
 
-          {/* Main Meeting Workspace Stage */}
-          <div className="flex-1 flex flex-col lg:flex-row p-3 sm:p-4 gap-4 overflow-hidden max-w-[1920px] mx-auto w-full">
+          {/* Main Meeting Stage Workspace */}
+          <div className="flex-1 flex flex-col lg:flex-row gap-5 max-w-[1920px] mx-auto w-full">
             
             {/* Left Main Video Feed Stage */}
             <div className={`flex-1 flex flex-col transition-all duration-300 ${isSidePanelOpen ? 'lg:w-[65%]' : 'w-full'}`}>
-              <div className="flex-1 min-h-[480px] sm:min-h-[600px]">
+              <div className="flex-1 min-h-[460px] sm:min-h-[600px]">
                 <VideoPlayer showHostControls={true} />
               </div>
             </div>
 
-            {/* Right Side Panel (Google Meet & Zoom Standard Drawer) */}
+            {/* Right Side Panel (Google Meet & Zoom Standard Drawer in Light Theme) */}
             {isSidePanelOpen && (
-              <div className="w-full lg:w-[35%] xl:w-[32%] flex flex-col bg-slate-900/90 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-slide-left shrink-0 max-h-[calc(100vh-6rem)]">
+              <div className="w-full lg:w-[35%] xl:w-[32%] flex flex-col bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden animate-slide-left shrink-0 min-h-[500px]">
                 
                 {/* Side Panel Tabs Header */}
-                <div className="p-3 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
-                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-semibold">
+                <div className="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl border border-slate-200 text-xs font-semibold">
                     <button
                       type="button"
                       onClick={() => setActiveSideTab('chat')}
                       className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                         activeSideTab === 'chat'
-                          ? 'bg-[#0084FF] text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-white text-[#0084FF] shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       <MessageSquare className="h-3.5 w-3.5" />
@@ -190,8 +173,8 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                       onClick={() => setActiveSideTab('widget')}
                       className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                         activeSideTab === 'widget'
-                          ? 'bg-[#0084FF] text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-white text-[#0084FF] shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       <Layers className="h-3.5 w-3.5" />
@@ -205,7 +188,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                       <button
                         type="button"
                         onClick={() => setActiveWidget('checkout')}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'checkout' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-white'}`}
+                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'checkout' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-slate-700'}`}
                         title="In-Stream Offer"
                       >
                         <CreditCard className="h-3.5 w-3.5" />
@@ -213,7 +196,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                       <button
                         type="button"
                         onClick={() => setActiveWidget('poll')}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'poll' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-white'}`}
+                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'poll' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-slate-700'}`}
                         title="Live Poll"
                       >
                         <BarChart3 className="h-3.5 w-3.5" />
@@ -221,7 +204,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                       <button
                         type="button"
                         onClick={() => setActiveWidget('lead_gen')}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'lead_gen' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-white'}`}
+                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${activeWidget === 'lead_gen' ? 'bg-[#0084FF] text-white' : 'text-slate-400 hover:text-slate-700'}`}
                         title="Agenda"
                       >
                         <Calendar className="h-3.5 w-3.5" />
@@ -246,7 +229,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                 {/* Host Announcement Banner Input at Bottom of Side Panel */}
                 <form
                   onSubmit={handleBroadcastAnnouncement}
-                  className="p-3 border-t border-white/10 bg-slate-950/60 flex items-center gap-2"
+                  className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2"
                 >
                   <Pin className="h-3.5 w-3.5 text-[#0084FF] shrink-0 ml-1" />
                   <input
@@ -254,7 +237,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                     value={announcementText}
                     onChange={(e) => setAnnouncementText(e.target.value)}
                     placeholder="Broadcast alert banner to attendees..."
-                    className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:border-[#0084FF] font-sans"
+                    className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0084FF] font-sans"
                   />
                   <Button
                     type="submit"
@@ -275,7 +258,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
 
         </div>
       ) : (
-        /* 3. PRE-MEETING EXECUTIVE PREPARATION STUDIO */
+        /* 2. PRE-MEETING PREPARATION STUDIO (Host can setup Agenda, Offers & Test Camera) */
         <div className="min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-8 space-y-6 pb-24 font-['Plus_Jakarta_Sans',sans-serif] text-left max-w-[1780px] 2xl:max-w-[1920px] mx-auto w-full">
           
           {/* 1. High-End Corporate Meeting Header */}
@@ -401,9 +384,19 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
           {/* 3. Real-time Telemetry Metrics */}
           <LiveAudienceMetrics />
 
-          {/* 4. Host Green Room Studio (Widescreen Device Preview & Start CTA) */}
-          <div className="w-full">
-            <VideoPlayer showHostControls={true} />
+          {/* 4. Split 60/40 Preparation Stage (Green Room on Left, Interactive Tools on Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[560px]">
+            {/* Left 7 Columns: Host Green Room Camera Preview & Start Button */}
+            <div className="lg:col-span-7 flex flex-col">
+              <VideoPlayer showHostControls={true} />
+            </div>
+
+            {/* Right 5 Columns: In-Stream Interactive Tools (Host can prepare Agenda/Offers before starting) */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              <div className="flex-1 min-h-[460px]">
+                <InteractiveLayer />
+              </div>
+            </div>
           </div>
 
         </div>

@@ -54,10 +54,12 @@ const AppContent: React.FC = () => {
     }
   }, [setIsPresenterRole]);
 
+  const { isLive } = useStream();
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-['Plus_Jakarta_Sans',sans-serif] selection:bg-blue-500/20 selection:text-blue-900 text-slate-800 antialiased">
-      {/* Top Universal Minimalist Navbar - Hidden for attendees on meeting links to provide full-screen immersive meeting */}
-      {currentView !== 'stage' && (
+      {/* Top Universal Minimalist Navbar - Hidden for attendees on meeting links and during active live meetings */}
+      {currentView !== 'stage' && !(currentView === 'presenter' && isLive) && (
         <Navbar
           currentView={currentView}
           setCurrentView={setCurrentView}

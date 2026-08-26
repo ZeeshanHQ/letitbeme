@@ -483,7 +483,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   }
 
   // 3. HOST PRE-MEETING GREEN ROOM (Widescreen Studio Preview)
-  if (showHostControls && !isMeetingStarted) {
+  if (showHostControls && !isMeetingStarted && !isLive) {
     return (
       <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-10 lg:p-12 font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
