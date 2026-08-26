@@ -655,50 +655,56 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
       {/* Floating Host Admission Notification (Google Meet / Zoom Knock Banner) */}
       {showHostControls && waitingParticipants.length > 0 && (
-        <div className="absolute top-16 right-4 z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-xl border border-blue-400/50 rounded-2xl p-3.5 shadow-2xl text-white space-y-2.5 animate-slide-up">
-          <div className="flex items-center justify-between">
+        <div className="absolute top-16 right-4 z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-xl border border-[#0084FF]/40 rounded-3xl p-4 shadow-2xl text-white space-y-3 animate-slide-up select-none">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-blue-400 animate-ping" />
-              <span className="text-xs font-bold text-white">Someone wants to join</span>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0084FF] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0084FF]" />
+              </span>
+              <span className="text-xs font-heading font-bold text-white">Join Request ({waitingParticipants.length})</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">Waiting Room</span>
+            <span className="text-[10px] font-mono text-slate-400">Waiting Lobby</span>
           </div>
 
-          {waitingParticipants.map((guest) => (
-            <div key={guest.id} className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-800/80 border border-slate-700">
-              <div className="flex items-center gap-2">
-                <img src={guest.avatar} alt={guest.name} className="h-7 w-7 rounded-full bg-slate-700" />
-                <div>
-                  <span className="text-xs font-semibold text-white block">{guest.name}</span>
-                  <span className="text-[10px] text-slate-400">{guest.joinedAt}</span>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {waitingParticipants.map((guest) => (
+              <div key={guest.id} className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-800/90 border border-slate-700/80 hover:border-slate-600 transition-all">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={guest.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${guest.name}`}
+                    alt={guest.name}
+                    className="h-8 w-8 rounded-full bg-slate-700 object-cover border border-slate-600 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">{guest.name}</span>
+                    <span className="text-[10px] font-mono text-[#60B1FF] block truncate">
+                      {guest.location || 'Live Attendee 🌐'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => admitParticipant(guest.id)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1 cursor-pointer shadow-sm transition-all"
+                  >
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>Admit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => denyParticipant(guest.id)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-700 cursor-pointer transition-all"
+                    title="Deny entry"
+                  >
+                    <UserX className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    admitParticipant(guest.id);
-                    // Broadcast admit to guest tab
-                    const bc = new BroadcastChannel('letitbeme_stream_sync');
-                    bc.postMessage({ type: 'ADMIT_GUEST', payload: { guestId: guest.id } });
-                  }}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1 cursor-pointer"
-                >
-                  <UserCheck className="h-3 w-3" />
-                  <span>Admit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => denyParticipant(guest.id)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700 cursor-pointer"
-                  title="Deny entry"
-                >
-                  <UserX className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

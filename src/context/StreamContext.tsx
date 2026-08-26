@@ -62,6 +62,7 @@ export interface WaitingParticipant {
   id: string;
   name: string;
   avatar: string;
+  location?: string;
   joinedAt: string;
 }
 
@@ -119,65 +120,91 @@ interface StreamContextType extends StreamState {
   createPoll: (question: string, optionTexts: string[]) => void;
   resetPoll: () => void;
   deletePoll: () => void;
-  toggleMic: () => Promise<void>;
-  toggleCam: () => Promise<void>;
-  toggleScreenShare: () => Promise<void>;
+  toggleMic: () => void;
+  toggleCam: () => void;
+  toggleScreenShare: () => void;
   toggleAiTranslation: () => void;
   setLanguage: (lang: SupportedLanguage) => void;
   triggerReaction: (emoji: string) => void;
-  sendMessage: (text: string, senderName?: string, avatarUrl?: string) => void;
+  sendMessage: (msg: string) => void;
   triggerCheckoutCelebration: () => void;
   toggleLiveStatus: () => void;
   setIsPresenterRole: (isPresenter: boolean) => void;
   saveStreamToSupabase: () => Promise<void>;
-  // Host Toggles & Waiting Room Actions
+  // Host management actions
   setRequireHostApproval: (req: boolean) => void;
   setAllowScreenShare: (allow: boolean) => void;
   setAllowChat: (allow: boolean) => void;
   setMuteOnEntry: (mute: boolean) => void;
-  requestJoinRoom: (guestName: string) => void;
-  isWaitingInLobby: boolean;
-  setIsWaitingInLobby: (val: boolean) => void;
+  requestJoinRoom: (guestName: string) => Promise<void>;
   admitParticipant: (id: string) => void;
   denyParticipant: (id: string) => void;
+  setIsWaitingInLobby: (waiting: boolean) => void;
 }
 
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
-// Web Audio API Chime Synthesizer for Join Notifications
-const playDoorbellChime = () => {
+// Web Audio API doorbell chime
+function playDoorbellChime() {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
     
-    // Note 1: E5 (659.25Hz)
+    const now = ctx.currentTime;
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
-    gain1.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc1.frequency.setValueAtTime(587.33, now); // D5
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
-    osc1.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + 0.6);
+    osc1.start(now);
+    osc1.stop(now + 0.6);
 
-    // Note 2: C5 (523.25Hz)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(523.25, ctx.currentTime + 0.25);
-    gain2.gain.setValueAtTime(0.25, ctx.currentTime + 0.25);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+    osc2.frequency.setValueAtTime(880.00, now + 0.25); // A5
+    gain2.gain.setValueAtTime(0.3, now + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
-    osc2.start(ctx.currentTime + 0.25);
-    osc2.stop(ctx.currentTime + 0.9);
+    osc2.start(now + 0.25);
+    osc2.stop(now + 0.9);
   } catch {
     // Ignore audio autoplay restrictions
   }
-};
+}
+
+// Fetch attendee City & Country (Privacy friendly)
+async function getAttendeeLocation(): Promise<string> {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const cityFromTz = tz.split('/')[1]?.replace(/_/g, ' ') || '';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
+    const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.city && data.country_name) {
+        const flag = data.country_code
+          ? String.fromCodePoint(...[...data.country_code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)))
+          : '📍';
+        return `${data.city}, ${data.country_name} ${flag}`;
+      }
+    }
+    return cityFromTz ? `${cityFromTz}` : 'Live Attendee 🌐';
+  } catch {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const city = tz.split('/')[1]?.replace(/_/g, ' ') || 'Global Member';
+    return `${city} 🌐`;
+  }
+}
 
 export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLive, setIsLive] = useState(false);
@@ -188,7 +215,6 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [hostName, setHostName] = useState('Host Presenter');
   const [hostSlug, setHostSlug] = useState('live');
   
-  // Real viewer count starts at 1 (the single real person in the room)
   const [viewerCount, setViewerCount] = useState(1);
   const [conversionRate, setConversionRate] = useState(0);
   const [layoutMode, setLayoutModeState] = useState<LayoutMode>('split');
@@ -216,6 +242,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Waiting Room state
   const [waitingParticipants, setWaitingParticipants] = useState<WaitingParticipant[]>([]);
   const [isWaitingInLobby, setIsWaitingInLobby] = useState<boolean>(false);
+  const myGuestIdRef = useRef<string>(localStorage.getItem('letitbeme_my_guest_id') || `guest-${Date.now()}`);
 
   const [localCamStream, setLocalCamStream] = useState<MediaStream | null>(null);
   const [localScreenStream, setLocalScreenStream] = useState<MediaStream | null>(null);
@@ -227,11 +254,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [streamDuration, setStreamDuration] = useState(0);
   
-  // Real chat begins completely empty
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
 
-  // Strictly ONLY $19.99/month offer
   const [productOffer, setProductOffer] = useState<ProductOffer>({
     name: 'Pro Creator & Stream All-Access Pass',
     tagline: 'Only $19.99/month for unlimited 1080p60 WebRTC broadcasting, interactive sandboxes & AI translation.',
@@ -252,9 +277,31 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [pollData, setPollData] = useState<PollData | null>(null);
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
 
+  // Synchronize across both BroadcastChannel and Supabase Realtime
   useEffect(() => {
     const bc = new BroadcastChannel('letitbeme_stream_sync');
     setChannel(bc);
+
+    const handleKnock = (payload: WaitingParticipant) => {
+      playDoorbellChime();
+      setWaitingParticipants((prev) => {
+        if (prev.some((p) => p.id === payload.id)) return prev;
+        return [...prev, payload];
+      });
+    };
+
+    const handleAdmit = (guestId: string) => {
+      if (guestId === myGuestIdRef.current) {
+        setIsWaitingInLobby(false);
+      }
+      setViewerCount((prev) => prev + 1);
+    };
+
+    const handleDeny = (guestId: string) => {
+      if (guestId === myGuestIdRef.current) {
+        alert('The host has declined your join request.');
+      }
+    };
 
     bc.onmessage = (event) => {
       const { type, payload } = event.data;
@@ -267,28 +314,25 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'SYNC_LANG') setCurrentLanguageState(payload);
       if (type === 'SYNC_MSG') setMessages((prev) => [...prev, payload]);
       if (type === 'SYNC_LIVE_STATUS') setIsLive(payload);
-      if (type === 'KNOCK_JOIN') {
-        playDoorbellChime();
-        setWaitingParticipants((prev) => {
-          if (prev.some((p) => p.id === payload.id)) return prev;
-          return [...prev, payload];
-        });
-      }
-      if (type === 'ADMIT_GUEST') {
-        if (payload.guestId === 'my_guest_id') {
-          setIsWaitingInLobby(false);
-        }
-        setViewerCount((prev) => prev + 1);
-      }
-      if (type === 'DENY_GUEST') {
-        if (payload.guestId === 'my_guest_id') {
-          alert('The host has denied your join request.');
-        }
-      }
+      if (type === 'KNOCK_JOIN') handleKnock(payload);
+      if (type === 'ADMIT_GUEST') handleAdmit(payload.guestId);
+      if (type === 'DENY_GUEST') handleDeny(payload.guestId);
     };
+
+    // Supabase Realtime WebSocket for cross-device / mobile phone synchronization
+    let realtimeChannel: any = null;
+    if (isSupabaseConfigured) {
+      realtimeChannel = supabase
+        .channel('letitbeme_room_sync')
+        .on('broadcast', { event: 'KNOCK_JOIN' }, (event) => handleKnock(event.payload))
+        .on('broadcast', { event: 'ADMIT_GUEST' }, (event) => handleAdmit(event.payload?.guestId))
+        .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
+        .subscribe();
+    }
 
     return () => {
       bc.close();
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     };
   }, []);
 
@@ -321,19 +365,19 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     channel?.postMessage({ type: 'SYNC_WIDGET', payload: widget });
   };
 
-  const setOfferTitle = (newTitle: string) => {
+  const setOfferPrice = (price: number) => {
     setProductOffer((prev) => {
-      const updated = { ...prev, name: newTitle };
-      channel?.postMessage({ type: 'SYNC_OFFER', payload: updated });
-      return updated;
+      const next = { ...prev, price };
+      channel?.postMessage({ type: 'SYNC_OFFER', payload: next });
+      return next;
     });
   };
 
-  const setOfferPrice = (newPrice: number) => {
+  const setOfferTitle = (name: string) => {
     setProductOffer((prev) => {
-      const updated = { ...prev, price: newPrice };
-      channel?.postMessage({ type: 'SYNC_OFFER', payload: updated });
-      return updated;
+      const next = { ...prev, name };
+      channel?.postMessage({ type: 'SYNC_OFFER', payload: next });
+      return next;
     });
   };
 
@@ -341,30 +385,67 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setTitle(newTitle);
   };
 
+  const setLanguage = (lang: SupportedLanguage) => {
+    setCurrentLanguageState(lang);
+    channel?.postMessage({ type: 'SYNC_LANG', payload: lang });
+  };
+
+  const toggleAiTranslation = () => {
+    setIsAiTranslationActive((prev) => !prev);
+  };
+
+  const triggerReaction = (emoji: string) => {
+    const newReaction: FloatingReaction = {
+      id: `${Date.now()}-${Math.random()}`,
+      emoji,
+      x: Math.random() * 80 + 10,
+    };
+    setReactions((prev) => [...prev.slice(-15), newReaction]);
+  };
+
+  const sendMessage = (text: string) => {
+    if (!text.trim()) return;
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      sender: isPresenterRole ? presenterName : 'Attendee',
+      avatar: isPresenterRole
+        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      message: text.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isPresenter: isPresenterRole,
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
+    channel?.postMessage({ type: 'SYNC_MSG', payload: newMsg });
+  };
+
   const votePoll = (optionId: string) => {
     setPollData((prev) => {
-      if (!prev) return null;
+      if (!prev || prev.hasVoted) return prev;
       const updatedOptions = prev.options.map((opt) => {
         if (opt.id === optionId) {
-          const newVotes = opt.votes + 1;
-          return { ...opt, votes: newVotes };
+          return { ...opt, votes: opt.votes + 1 };
         }
         return opt;
       });
-      const newTotal = prev.totalVotes + 1;
-      const calculated = updatedOptions.map((opt) => ({
+
+      const totalVotes = prev.totalVotes + 1;
+      const optionsWithPercentages = updatedOptions.map((opt) => ({
         ...opt,
-        percentage: Math.round((opt.votes / (newTotal || 1)) * 100),
+        percentage: Math.round((opt.votes / totalVotes) * 100),
       }));
-      const updated = {
+
+      const next = {
         ...prev,
-        options: calculated,
-        totalVotes: newTotal,
+        options: optionsWithPercentages,
+        totalVotes,
         hasVoted: true,
         userSelectedOption: optionId,
       };
-      channel?.postMessage({ type: 'SYNC_POLL', payload: updated });
-      return updated;
+
+      channel?.postMessage({ type: 'SYNC_POLL', payload: next });
+      return next;
     });
   };
 
@@ -410,7 +491,6 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     channel?.postMessage({ type: 'SYNC_POLL', payload: null });
   };
 
-  // Camera Toggle
   const toggleCam = async () => {
     try {
       if (isCamOn) {
@@ -432,12 +512,10 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Mic Toggle
   const toggleMic = async () => {
     setIsMicOn((prev) => !prev);
   };
 
-  // Screen Share Toggle
   const toggleScreenShare = async () => {
     try {
       if (isScreenSharing) {
@@ -448,55 +526,15 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsScreenSharing(false);
       } else {
         const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: 60 },
+          video: true,
           audio: true,
         });
-        stream.getVideoTracks()[0].onended = () => {
-          setIsScreenSharing(false);
-          setLocalScreenStream(null);
-        };
         setLocalScreenStream(stream);
         setIsScreenSharing(true);
       }
     } catch {
       setIsScreenSharing(false);
     }
-  };
-
-  const toggleAiTranslation = () => {
-    setIsAiTranslationActive((prev) => !prev);
-  };
-
-  const setLanguage = (lang: SupportedLanguage) => {
-    setCurrentLanguageState(lang);
-    channel?.postMessage({ type: 'SYNC_LANG', payload: lang });
-  };
-
-  const triggerReaction = (emoji: string) => {
-    const reaction: FloatingReaction = {
-      id: `${Date.now()}-${Math.random()}`,
-      emoji,
-      x: Math.random() * 80 + 10,
-    };
-    setReactions((prev) => [...prev, reaction]);
-    setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== reaction.id));
-    }, 2800);
-  };
-
-  const sendMessage = (text: string, senderName = 'Host Presenter', avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80') => {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const msg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: senderName,
-      avatar: avatarUrl,
-      message: text,
-      timestamp: timeStr,
-      isPresenter: isPresenterRole,
-    };
-    setMessages((prev) => [...prev, msg]);
-    channel?.postMessage({ type: 'SYNC_MSG', payload: msg });
   };
 
   const triggerCheckoutCelebration = () => {
@@ -532,16 +570,29 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Waiting Room Knock / Admit / Deny
-  const requestJoinRoom = (guestName: string) => {
+  const requestJoinRoom = async (guestName: string) => {
+    const loc = await getAttendeeLocation();
+    const guestId = myGuestIdRef.current;
+    localStorage.setItem('letitbeme_my_guest_id', guestId);
+
     const guest: WaitingParticipant = {
-      id: `guest-${Date.now()}`,
-      name: guestName || 'Guest Attendee',
+      id: guestId,
+      name: guestName.trim() || 'Guest Attendee',
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${guestName}`,
+      location: loc,
       joinedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+
     if (requireHostApproval) {
       setIsWaitingInLobby(true);
       channel?.postMessage({ type: 'KNOCK_JOIN', payload: guest });
+      if (isSupabaseConfigured) {
+        supabase.channel('letitbeme_room_sync').send({
+          type: 'broadcast',
+          event: 'KNOCK_JOIN',
+          payload: guest,
+        });
+      }
     } else {
       setIsWaitingInLobby(false);
       setViewerCount((prev) => prev + 1);
@@ -552,11 +603,25 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     setViewerCount((prev) => prev + 1);
     channel?.postMessage({ type: 'ADMIT_GUEST', payload: { guestId: id } });
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'ADMIT_GUEST',
+        payload: { guestId: id },
+      });
+    }
   };
 
   const denyParticipant = (id: string) => {
     setWaitingParticipants((prev) => prev.filter((p) => p.id !== id));
     channel?.postMessage({ type: 'DENY_GUEST', payload: { guestId: id } });
+    if (isSupabaseConfigured) {
+      supabase.channel('letitbeme_room_sync').send({
+        type: 'broadcast',
+        event: 'DENY_GUEST',
+        payload: { guestId: id },
+      });
+    }
   };
 
   return (
