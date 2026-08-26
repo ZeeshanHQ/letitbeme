@@ -14,6 +14,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { createStripeProCheckoutUrl } from '../../lib/stripe';
 
 interface ProUpgradeModalProps {
   isOpen: boolean;
@@ -26,49 +27,34 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
 }) => {
   const { user, upgradeToPro } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleCheckoutPro = async () => {
     setIsProcessing(true);
+    setErrorMessage(null);
 
     try {
-      // 1. Call real Stripe Checkout API
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'subscription',
-          userId: user?.id,
-          userEmail: user?.email,
-        }),
-      });
+      // 1. Generate real Stripe Checkout Session
+      const checkoutUrl = await createStripeProCheckoutUrl(user?.email);
 
-      const data = await response.json();
-
-      if (data?.url) {
-        // Open Stripe Checkout Session in centered popup or redirect
-        const popupWidth = 540;
-        const popupHeight = 760;
-        const left = window.screen.width / 2 - popupWidth / 2;
-        const top = window.screen.height / 2 - popupHeight / 2;
-        window.open(
-          data.url,
-          'StripeProCheckout',
-          `width=${popupWidth},height=${popupHeight},top=${top},left=${left},status=no,toolbar=no,menubar=no`
-        );
-        setIsProcessing(false);
-        onClose();
+      if (checkoutUrl) {
+        // Redirect directly to official Stripe Checkout page
+        window.location.href = checkoutUrl;
         return;
       }
-    } catch (e) {
-      console.warn('Stripe checkout API note, using instant upgrade:', e);
+    } catch (err: any) {
+      console.warn('Stripe checkout note:', err);
+      setErrorMessage(err?.message || 'Could not connect to Stripe. Upgrading directly...');
+      
+      // Fallback
+      setTimeout(async () => {
+        await upgradeToPro();
+        setIsProcessing(false);
+        onClose();
+      }, 1000);
     }
-
-    // Direct upgrade fallback
-    await upgradeToPro();
-    setIsProcessing(false);
-    onClose();
   };
 
   return (
@@ -148,6 +134,12 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
             </div>
           </div>
 
+          {errorMessage && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Action CTA */}
           <div className="pt-3 space-y-2">
             <button
@@ -159,7 +151,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Connecting Stripe Checkout...</span>
+                  <span>Connecting to Stripe Checkout...</span>
                 </>
               ) : (
                 <>

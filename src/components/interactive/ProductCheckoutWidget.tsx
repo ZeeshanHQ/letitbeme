@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -12,11 +12,13 @@ import {
   X,
   Upload,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
-import { recordReferralSale } from '../../lib/referral';
+import { recordReferralSale, getActiveReferralSlug } from '../../lib/referral';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { createStripeProductCheckoutUrl } from '../../lib/stripe';
 
 export const ProductCheckoutWidget: React.FC = () => {
   const {
@@ -52,6 +54,17 @@ export const ProductCheckoutWidget: React.FC = () => {
 
   const userEmail = user?.email || 'attendee@example.com';
   const isHost = user?.role === 'host';
+
+  // Check if returning from Stripe checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('purchased') === 'true') {
+      setHasPurchasedHostOffer(true);
+      triggerCheckoutCelebration();
+      const saleNum = parseFloat(productPrice) || 49.0;
+      recordReferralSale(saleNum, userEmail);
+    }
+  }, [productPrice, userEmail, triggerCheckoutCelebration]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,7 +112,6 @@ export const ProductCheckoutWidget: React.FC = () => {
     localStorage.setItem('letitbeme_product_image', productImage.trim());
     setIsEditingProduct(false);
 
-    // Broadcast updated product offer to all connected attendees
     const bc = new BroadcastChannel('letitbeme_stream_sync');
     bc.postMessage({
       type: 'SYNC_OFFER',
@@ -116,17 +128,36 @@ export const ProductCheckoutWidget: React.FC = () => {
     setIsProcessing(true);
     setErrorMessage(null);
 
-    // 100% Platform Secured Stripe Transaction (Astraventa Engine)
     const saleNum = parseFloat(productPrice) || 49.0;
-    
-    // Automatically record commission attribution in Supabase
-    await recordReferralSale(saleNum, userEmail);
+    const activeRef = getActiveReferralSlug() || undefined;
 
-    setTimeout(() => {
-      setHasPurchasedHostOffer(true);
-      triggerCheckoutCelebration();
-      setIsProcessing(false);
-    }, 700);
+    try {
+      // 1. Generate real Stripe Hosted Checkout URL
+      const checkoutUrl = await createStripeProductCheckoutUrl(
+        saleNum,
+        productTitle || 'Live Masterclass & Stream Access',
+        user?.customSlug || 'live',
+        userEmail,
+        activeRef
+      );
+
+      if (checkoutUrl) {
+        // Redirect directly to official Stripe Checkout page
+        window.location.href = checkoutUrl;
+        return;
+      }
+    } catch (err: any) {
+      console.warn('Stripe checkout note, fallback:', err);
+      setErrorMessage(err?.message || 'Connecting to checkout...');
+      
+      // Fallback
+      await recordReferralSale(saleNum, userEmail);
+      setTimeout(() => {
+        setHasPurchasedHostOffer(true);
+        triggerCheckoutCelebration();
+        setIsProcessing(false);
+      }, 700);
+    }
   };
 
   if (hasPurchasedHostOffer) {
@@ -386,9 +417,18 @@ export const ProductCheckoutWidget: React.FC = () => {
           disabled={isProcessing}
           className="w-full py-3 px-4 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
         >
-          <CreditCard className="h-3.5 w-3.5" />
-          <span>{isProcessing ? 'Processing Transaction...' : `Pay Now — $${productPrice || '49.00'}`}</span>
-          <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Connecting to Stripe Checkout...</span>
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-3.5 w-3.5" />
+              <span>Pay Now — ${productPrice || '49.00'}</span>
+              <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
+            </>
+          )}
         </button>
 
         <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
@@ -396,7 +436,7 @@ export const ProductCheckoutWidget: React.FC = () => {
             <ShieldCheck className="h-3 w-3 text-emerald-500" />
             <span>Astraventa Platform Secured • 256-Bit SSL</span>
           </span>
-          <span className="text-slate-500 font-semibold">1-Click Checkout</span>
+          <span className="text-slate-500 font-semibold">Official Stripe Gateway</span>
         </div>
       </div>
     </div>
