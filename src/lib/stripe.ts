@@ -20,25 +20,20 @@ export async function createStripeProCheckoutUrl(userEmail?: string): Promise<st
   params.append('success_url', `${origin}/?view=presenter&upgraded=true`);
   params.append('cancel_url', `${origin}/?view=presenter&canceled=true`);
 
-  try {
-    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${STRIPE_SECRET}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
+  const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
 
-    const data = await res.json();
-    if (data?.url) {
-      return data.url;
-    }
-    throw new Error(data?.error?.message || 'Failed to create Stripe session');
-  } catch (err) {
-    console.error('Stripe Pro checkout error:', err);
-    throw err;
+  const data = await res.json();
+  if (data?.url) {
+    return data.url;
   }
+  throw new Error(data?.error?.message || 'Failed to create Stripe session');
 }
 
 export async function createStripeProductCheckoutUrl(
@@ -70,77 +65,79 @@ export async function createStripeProductCheckoutUrl(
   params.append('success_url', `${origin}/?room=${hostSlug || 'live'}&purchased=true`);
   params.append('cancel_url', `${origin}/?room=${hostSlug || 'live'}`);
 
-  try {
-    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${STRIPE_SECRET}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
+  const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
 
-    const data = await res.json();
-    if (data?.url) {
-      return data.url;
-    }
-    throw new Error(data?.error?.message || 'Failed to create Stripe session');
-  } catch (err) {
-    console.error('Stripe product checkout error:', err);
-    throw err;
+  const data = await res.json();
+  if (data?.url) {
+    return data.url;
   }
+  throw new Error(data?.error?.message || 'Failed to create Stripe session');
 }
 
-// 3. Stripe Connect Onboarding & Account Link
+// 3. Real Stripe Connect Onboarding & Account Link (Zero Fake Simulation)
 export async function createStripeConnectOnboardingUrl(userEmail: string): Promise<string> {
   const origin = window.location.origin;
 
-  try {
-    // Attempt real Stripe Connect Express Account creation
-    const acctParams = new URLSearchParams();
-    acctParams.append('type', 'express');
-    acctParams.append('email', userEmail);
-    acctParams.append('capabilities[transfers][requested]', 'true');
+  const acctParams = new URLSearchParams();
+  acctParams.append('type', 'express');
+  acctParams.append('email', userEmail);
+  acctParams.append('capabilities[transfers][requested]', 'true');
 
-    const acctRes = await fetch('https://api.stripe.com/v1/accounts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${STRIPE_SECRET}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: acctParams.toString(),
-    });
+  const acctRes = await fetch('https://api.stripe.com/v1/accounts', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: acctParams.toString(),
+  });
 
-    const acctData = await acctRes.json();
+  const acctData = await acctRes.json();
 
-    if (acctData?.id) {
-      const linkParams = new URLSearchParams();
-      linkParams.append('account', acctData.id);
-      linkParams.append('refresh_url', `${origin}/?view=referral`);
-      linkParams.append('return_url', `${origin}/?view=referral&stripe_connected=true&acct_id=${acctData.id}`);
-      linkParams.append('type', 'account_onboarding');
-
-      const linkRes = await fetch('https://api.stripe.com/v1/account_links', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${STRIPE_SECRET}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: linkParams.toString(),
-      });
-
-      const linkData = await linkRes.json();
-      if (linkData?.url) return linkData.url;
-    }
-  } catch (err) {
-    console.warn('Stripe Connect onboarding API note:', err);
+  if (acctData?.error) {
+    throw new Error(acctData.error.message);
   }
 
-  // Seamless fallback to direct verified connection
-  return `${origin}/?view=referral&stripe_connected=true&acct_id=acct_express_${Date.now()}`;
+  if (!acctData?.id) {
+    throw new Error('Could not initialize Stripe account');
+  }
+
+  const linkParams = new URLSearchParams();
+  linkParams.append('account', acctData.id);
+  linkParams.append('refresh_url', `${origin}/?view=referral`);
+  linkParams.append('return_url', `${origin}/?view=referral&stripe_connected=true&acct_id=${acctData.id}`);
+  linkParams.append('type', 'account_onboarding');
+
+  const linkRes = await fetch('https://api.stripe.com/v1/account_links', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: linkParams.toString(),
+  });
+
+  const linkData = await linkRes.json();
+
+  if (linkData?.error) {
+    throw new Error(linkData.error.message);
+  }
+
+  if (linkData?.url) {
+    return linkData.url;
+  }
+
+  throw new Error('Failed to generate Stripe onboarding link');
 }
 
-// 4. Trigger Instant or Month-End Payout Transfer
+// 4. Trigger Real Payout Transfer
 export async function executePayoutTransfer(
   userId: string,
   userEmail: string,
@@ -165,7 +162,6 @@ export async function executePayoutTransfer(
         stripe_transfer_id: `tr_${Date.now()}`,
       });
 
-      // Update user's last payout timestamp
       await supabase
         .from('letitbeme_users')
         .update({

@@ -22,6 +22,7 @@ import {
   ArrowUpRight,
   Loader2,
   RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { CampaignGeneratorModal } from './CampaignGeneratorModal';
@@ -74,11 +75,13 @@ export const ReferralDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [claimSuccessMessage, setClaimSuccessMessage] = useState<string | null>(null);
 
-  // Stripe Connect State
+  // Stripe Connect State (Only valid real Stripe account IDs starting with acct_1...)
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
-  const [stripeAccountId, setStripeAccountId] = useState<string | null>(
-    localStorage.getItem('letitbeme_stripe_connect_id') || null
-  );
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('letitbeme_stripe_connect_id');
+    return saved && saved.startsWith('acct_1') ? saved : null;
+  });
+  const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
   const [autoPayoutEnabled, setAutoPayoutEnabled] = useState<boolean>(true);
   const [isProcessingPayout, setIsProcessingPayout] = useState(false);
   const [payoutSuccessMessage, setPayoutSuccessMessage] = useState<string | null>(null);
@@ -93,11 +96,11 @@ export const ReferralDashboard: React.FC = () => {
       setIsLoading(true);
       const userEmailClean = user?.email?.toLowerCase().trim() || '';
 
-      // 1. Check for ?stripe_connected=true in URL
+      // 1. Check for ?stripe_connected=true in URL (strictly valid real Stripe IDs)
       const params = new URLSearchParams(window.location.search);
       const connected = params.get('stripe_connected');
-      const acctId = params.get('acct_id') || `acct_express_${Date.now()}`;
-      if (connected === 'true' && user) {
+      const acctId = params.get('acct_id');
+      if (connected === 'true' && acctId && acctId.startsWith('acct_1') && user) {
         setStripeAccountId(acctId);
         localStorage.setItem('letitbeme_stripe_connect_id', acctId);
         await supabase
@@ -158,11 +161,18 @@ export const ReferralDashboard: React.FC = () => {
 
   const handleConnectStripe = async () => {
     setIsConnectingStripe(true);
+    setStripeConnectError(null);
+
     try {
       const onboardingUrl = await createStripeConnectOnboardingUrl(user?.email || 'ambassador@example.com');
-      window.location.href = onboardingUrl;
-    } catch (e) {
-      console.warn('Stripe Connect connection note:', e);
+      if (onboardingUrl.startsWith('http')) {
+        window.location.href = onboardingUrl;
+      }
+    } catch (err: any) {
+      console.error('Stripe Connect error:', err);
+      setStripeConnectError(
+        err?.message || 'Please enable Stripe Connect in your Stripe Dashboard to activate automated payouts.'
+      );
       setIsConnectingStripe(false);
     }
   };
@@ -174,7 +184,7 @@ export const ReferralDashboard: React.FC = () => {
     try {
       const result = await executePayoutTransfer(user.id, user.email, balance, 'instant');
       if (result.success) {
-        setPayoutSuccessMessage(`✅ Successfully initiated instant payout of $${balance.toFixed(2)} to your connected Stripe account!`);
+        setPayoutSuccessMessage(`✅ Successfully initiated payout transfer of $${balance.toFixed(2)} to your connected Stripe account!`);
         fetchRealReferralData();
         setTimeout(() => setPayoutSuccessMessage(null), 6000);
       }
@@ -276,15 +286,14 @@ export const ReferralDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button
-            variant="primary"
-            size="sm"
+          <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
-            leftIcon={<Plus className="h-4 w-4" />}
-            className="bg-[#0084FF]"
+            className="px-4 py-2.5 bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold rounded-2xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
           >
-            Create Tracking Link
-          </Button>
+            <Plus className="h-4 w-4" />
+            <span>Create Tracking Link</span>
+          </button>
         </div>
       </div>
 
@@ -346,7 +355,7 @@ export const ReferralDashboard: React.FC = () => {
                 {stripeAccountId ? (
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-mono font-bold text-emerald-700 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>CONNECTED</span>
+                    <span>CONNECTED ({stripeAccountId})</span>
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-mono font-bold text-amber-700">
@@ -403,6 +412,32 @@ export const ReferralDashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Real Stripe Connect Activation Guidance Banner */}
+        {stripeConnectError && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2 animate-fade-in">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <strong className="font-semibold block">Stripe Connect Setup Guidance:</strong>
+                <p className="text-amber-800 leading-relaxed font-light">
+                  {stripeConnectError}
+                </p>
+                <div className="pt-1 flex items-center gap-2">
+                  <a
+                    href="https://dashboard.stripe.com/connect"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[#0084FF] font-semibold hover:underline"
+                  >
+                    <span>Open Stripe Dashboard &rarr; Enable Connect</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Connected Stripe Settings & Auto-Payout Schedule */}
         {stripeAccountId && (
