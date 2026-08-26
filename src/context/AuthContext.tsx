@@ -366,7 +366,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             custom_slug: newSlug,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', user.id);
+          .eq('email', user.email.toLowerCase().trim());
 
         await supabase.from('letitbeme_rooms').upsert({
           room_slug: newSlug,

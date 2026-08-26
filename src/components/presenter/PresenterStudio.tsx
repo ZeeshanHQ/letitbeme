@@ -100,7 +100,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
               }`}
             >
               <CreditCard className="h-3.5 w-3.5" />
-              <span>Pro Plan ($19.99)</span>
+              <span>Live Offer</span>
             </button>
 
             <button

@@ -136,6 +136,8 @@ interface StreamContextType extends StreamState {
   setAllowChat: (allow: boolean) => void;
   setMuteOnEntry: (mute: boolean) => void;
   requestJoinRoom: (guestName: string) => void;
+  isWaitingInLobby: boolean;
+  setIsWaitingInLobby: (val: boolean) => void;
   admitParticipant: (id: string) => void;
   denyParticipant: (id: string) => void;
 }
@@ -178,7 +180,7 @@ const playDoorbellChime = () => {
 };
 
 export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(false);
   const [streamId] = useState('stream-masterclass-2026');
   const [title, setTitle] = useState('Interactive Executive Meeting Room');
   const [presenterName, setPresenterName] = useState('Host Presenter');
@@ -598,6 +600,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         muteOnEntry,
         waitingParticipants,
         isWaitingInLobby,
+        setIsWaitingInLobby,
         setLayoutMode,
         setActiveWidget,
         setCustomEmbedUrl,

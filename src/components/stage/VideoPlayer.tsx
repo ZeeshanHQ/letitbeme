@@ -21,6 +21,8 @@ import {
   Play,
   Loader2,
   Sparkles,
+  User,
+  ArrowRight,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -45,12 +47,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     localScreenStream,
     streamDuration,
     toggleLiveStatus,
-    layoutMode,
-    setLayoutMode,
     waitingParticipants,
     admitParticipant,
     denyParticipant,
     isWaitingInLobby,
+    setIsWaitingInLobby,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -62,6 +63,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const [volume, setVolume] = useState(0.85);
   const [showProSummary, setShowProSummary] = useState(false);
 
+  // Guest join state
+  const [guestName, setGuestName] = useState(user?.fullName || '');
+  const [isGuestJoined, setIsGuestJoined] = useState(false);
+  const [hasKnocked, setHasKnocked] = useState(false);
+
   // Real-time editable host name and slug
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(user?.fullName || 'Host Presenter');
@@ -70,6 +76,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   useEffect(() => {
     if (user?.fullName) {
       setEditName(user.fullName);
+      if (!guestName) setGuestName(user.fullName);
     }
     if (user?.customSlug) {
       setEditSlug(user.customSlug);
@@ -81,7 +88,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     setTimeout(() => {
       setIsConnecting(false);
       setIsMeetingStarted(true);
+      if (!isLive) {
+        toggleLiveStatus();
+      }
     }, 850);
+  };
+
+  const handleGuestKnock = () => {
+    if (!guestName.trim()) return;
+    setIsConnecting(true);
+    
+    // Broadcast knock to host
+    const bc = new BroadcastChannel('letitbeme_stream_sync');
+    const myGuestId = `guest_${Date.now()}`;
+    bc.postMessage({
+      type: 'KNOCK_JOIN',
+      payload: {
+        id: myGuestId,
+        name: guestName.trim(),
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guestName.trim())}`,
+        joinedAt: 'Just now',
+      },
+    });
+
+    setTimeout(() => {
+      setIsConnecting(false);
+      setHasKnocked(true);
+      setIsWaitingInLobby(true);
+    }, 600);
   };
 
   const handleSaveName = async (e?: React.FormEvent) => {
@@ -98,6 +132,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const containerRef = useRef<HTMLDivElement>(null);
   const camVideoRef = useRef<HTMLVideoElement>(null);
   const greenRoomCamRef = useRef<HTMLVideoElement>(null);
+  const guestLobbyCamRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipCamVideoRef = useRef<HTMLVideoElement>(null);
   
@@ -121,10 +156,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     if (greenRoomCamRef.current && localCamStream) {
       greenRoomCamRef.current.srcObject = localCamStream;
     }
+    if (guestLobbyCamRef.current && localCamStream) {
+      guestLobbyCamRef.current.srcObject = localCamStream;
+    }
     if (pipCamVideoRef.current && localCamStream) {
       pipCamVideoRef.current.srcObject = localCamStream;
     }
-  }, [localCamStream, isCamOn, isMeetingStarted]);
+  }, [localCamStream, isCamOn, isMeetingStarted, isGuestJoined]);
 
   // Bind screen stream
   useEffect(() => {
@@ -226,8 +264,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     }
   };
 
-  // 1. GUEST WAITING ROOM LOBBY
-  if (isWaitingInLobby) {
+  // 1. GUEST WAITING ROOM LOBBY (When knocked)
+  if (!showHostControls && isWaitingInLobby && hasKnocked) {
     return (
       <div className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
         <div className="relative">
@@ -245,19 +283,119 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             Waiting for the host to let you in...
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
-            The host has been notified with a chime. You will join the live room automatically as soon as they admit you.
+            The host has received your request with a chime. You will be connected automatically when admitted.
           </p>
         </div>
 
         <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
-          Room: letitbe.me/@{user?.customSlug || 'meeting'}
+          Guest: <strong className="text-white">{guestName || 'Attendee'}</strong>
         </div>
       </div>
     );
   }
 
-  // 2. PRE-MEETING GREEN ROOM ("Ready to meet?")
-  if (!isMeetingStarted) {
+  // 2. GUEST JOIN SCREEN (Ask for Name before joining)
+  if (!showHostControls && !isGuestJoined) {
+    return (
+      <div className="relative w-full h-full min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
+        
+        {/* Device Check Preview */}
+        <div className="relative">
+          {isCamOn && localCamStream ? (
+            <div className="h-28 w-28 rounded-full border-2 border-[#0084FF] shadow-2xl overflow-hidden bg-slate-900">
+              <video
+                ref={guestLobbyCamRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover mirror"
+              />
+            </div>
+          ) : (
+            <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-3xl font-heading font-bold">
+              {(guestName || 'G').charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          <div className="absolute bottom-0 right-0 p-2 rounded-full bg-[#0A0D14] border border-slate-700 shadow-md">
+            {isMicOn ? <Mic className="h-4 w-4 text-emerald-400" /> : <MicOff className="h-4 w-4 text-rose-500" />}
+          </div>
+        </div>
+
+        <div className="space-y-1 max-w-md">
+          <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
+            Ready to join the meeting?
+          </h3>
+          <p className="text-xs text-slate-400">
+            Enter your name to let the host know who is joining
+          </p>
+        </div>
+
+        {/* Guest Name Input */}
+        <form onSubmit={(e) => { e.preventDefault(); handleGuestKnock(); }} className="w-full max-w-xs space-y-3">
+          <div className="relative">
+            <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              required
+              autoFocus
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              placeholder="What's your name?"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900/90 text-white text-xs font-semibold focus:outline-none focus:border-[#0084FF]"
+            />
+          </div>
+
+          {/* Camera / Mic Quick Check */}
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={toggleMic}
+              className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                isMicOn ? 'bg-slate-800 border-slate-700 text-white' : 'bg-rose-600 border-rose-600 text-white'
+              }`}
+              title="Microphone"
+            >
+              {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleCam}
+              className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                isCamOn ? 'bg-[#0084FF] border-[#0084FF] text-white' : 'bg-slate-800 border-slate-700 text-slate-300'
+              }`}
+              title="Camera"
+            >
+              {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={!guestName.trim() || isConnecting}
+            className="w-full py-3 px-4 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50 transition-all"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Knocking Room Door...</span>
+              </>
+            ) : (
+              <>
+                <span>Ask to Join Meeting</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
+        </form>
+
+      </div>
+    );
+  }
+
+  // 3. HOST PRE-MEETING GREEN ROOM ("Ready to meet?")
+  if (showHostControls && !isMeetingStarted) {
     return (
       <div className="relative w-full h-full min-h-[480px] bg-gradient-to-b from-[#0F172A] via-[#0A0E1A] to-[#06080F] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center justify-center p-8 text-center text-white space-y-6 font-sans">
         
@@ -294,7 +432,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
         <div className="space-y-1 max-w-md">
           <h3 className="text-2xl font-heading font-bold text-white tracking-tight">
-            Ready to join the meeting?
+            Ready to start your meeting?
           </h3>
           <p className="text-xs text-slate-400">
             Broadcasting as <strong className="text-white">{user?.fullName || 'Host Presenter'}</strong> (@{user?.customSlug || 'live'})
@@ -360,7 +498,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     );
   }
 
-  // 3. LIVE MEETING STAGE
+  // 4. LIVE MEETING STAGE
   return (
     <div
       ref={containerRef}
@@ -430,7 +568,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           </div>
 
           <div className="relative z-10 flex items-center gap-2 max-w-md">
-            {isEditingName ? (
+            {showHostControls && isEditingName ? (
               <form onSubmit={handleSaveName} className="flex flex-wrap items-center gap-1.5 bg-slate-900/95 p-2 rounded-2xl border border-[#0084FF] shadow-2xl">
                 <input
                   type="text"
@@ -467,20 +605,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
                 </button>
               </form>
             ) : (
-              <button
-                type="button"
-                onClick={() => setIsEditingName(true)}
-                className="group flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/95 hover:bg-slate-800 border border-white/20 text-white transition-all cursor-pointer shadow-lg backdrop-blur-md"
-                title="Click to rename display name & stream handle"
-              >
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/95 border border-white/20 text-white shadow-lg backdrop-blur-md">
                 <span className="text-xs font-bold text-white font-heading tracking-tight">
                   {user?.fullName || 'Host Presenter'}
                 </span>
                 <span className="text-[11px] font-mono text-[#0084FF] font-bold">
                   @{user?.customSlug || 'live'}
                 </span>
-                <Edit2 className="h-3 w-3 text-slate-300 group-hover:text-[#0084FF] ml-0.5" />
-              </button>
+                {showHostControls && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingName(true)}
+                    className="p-0.5 text-slate-300 hover:text-[#0084FF] cursor-pointer"
+                    title="Rename display name & handle"
+                  >
+                    <Edit2 className="h-3 w-3 ml-0.5" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -491,7 +633,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       )}
 
       {/* Floating Host Admission Notification (Google Meet / Zoom Knock Banner) */}
-      {waitingParticipants.length > 0 && (
+      {showHostControls && waitingParticipants.length > 0 && (
         <div className="absolute top-16 right-4 z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-xl border border-blue-400/50 rounded-2xl p-3.5 shadow-2xl text-white space-y-2.5 animate-slide-up">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -514,7 +656,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => admitParticipant(guest.id)}
+                  onClick={() => {
+                    admitParticipant(guest.id);
+                    // Broadcast admit to guest tab
+                    const bc = new BroadcastChannel('letitbeme_stream_sync');
+                    bc.postMessage({ type: 'ADMIT_GUEST', payload: { guestId: guest.id } });
+                  }}
                   className="px-3 py-1 rounded-lg text-xs font-semibold bg-[#0084FF] hover:bg-[#0074E0] text-white flex items-center gap-1 cursor-pointer"
                 >
                   <UserCheck className="h-3 w-3" />
@@ -534,12 +681,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         </div>
       )}
 
-      {/* Top Meeting Status Bar (Clean & Focused) */}
+      {/* Top Meeting Status Bar */}
       <div className="relative z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-mono">
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-            <span>{formatDuration(streamDuration)}</span>
+            <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`} />
+            <span>{isLive ? formatDuration(streamDuration) : '00:00'}</span>
           </span>
 
           <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-200 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 font-mono">
@@ -551,9 +698,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-mono">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Host</span>
+            <span>{showHostControls ? 'Host' : 'Attendee'}</span>
             <span className="text-slate-500">•</span>
-            <span className="text-slate-300">@live</span>
+            <span className="text-slate-300">@{user?.customSlug || 'live'}</span>
           </span>
         </div>
       </div>
@@ -562,63 +709,63 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
       <SubtitleOverlay />
 
       {/* Bottom Floating Control Dock */}
-      {showHostControls && (
-        <div className="relative z-30 p-4 flex items-center justify-center">
-          <div className="flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-4 py-2.5 rounded-full border border-white/15 shadow-2xl">
-            
-            {/* Volume */}
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="p-2.5 rounded-full text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer"
-            >
-              {isMuted ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4" />}
-            </button>
+      <div className="relative z-30 p-4 flex items-center justify-center">
+        <div className="flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-2xl px-4 py-2.5 rounded-full border border-white/15 shadow-2xl">
+          
+          {/* Volume */}
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="p-2.5 rounded-full text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer"
+          >
+            {isMuted ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4" />}
+          </button>
 
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={isMuted ? 0 : volume}
-              onChange={(e) => {
-                setVolume(parseFloat(e.target.value));
-                setIsMuted(false);
-              }}
-              className="w-14 sm:w-20 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0084FF]"
-            />
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={isMuted ? 0 : volume}
+            onChange={(e) => {
+              setVolume(parseFloat(e.target.value));
+              setIsMuted(false);
+            }}
+            className="w-14 sm:w-20 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0084FF]"
+          />
 
-            <div className="h-5 w-px bg-slate-800" />
+          <div className="h-5 w-px bg-slate-800" />
 
-            {/* Mic Toggle */}
-            <button
-              type="button"
-              onClick={toggleMic}
-              className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                isMicOn
-                  ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700'
-                  : 'bg-rose-600 text-white hover:bg-rose-700'
-              }`}
-            >
-              {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isMicOn ? 'Mute' : 'Unmute'}</span>
-            </button>
+          {/* Mic Toggle */}
+          <button
+            type="button"
+            onClick={toggleMic}
+            className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              isMicOn
+                ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700'
+                : 'bg-rose-600 text-white hover:bg-rose-700'
+            }`}
+          >
+            {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isMicOn ? 'Mute' : 'Unmute'}</span>
+          </button>
 
-            {/* Camera Toggle */}
-            <button
-              type="button"
-              onClick={toggleCam}
-              className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                isCamOn
-                  ? 'bg-[#0084FF] text-white hover:bg-[#0074E0]'
-                  : 'bg-rose-600 text-white hover:bg-rose-700'
-              }`}
-            >
-              {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isCamOn ? 'Stop Video' : 'Start Video'}</span>
-            </button>
+          {/* Camera Toggle */}
+          <button
+            type="button"
+            onClick={toggleCam}
+            className={`p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              isCamOn
+                ? 'bg-[#0084FF] text-white hover:bg-[#0074E0]'
+                : 'bg-rose-600 text-white hover:bg-rose-700'
+            }`}
+          >
+            {isCamOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isCamOn ? 'Stop Video' : 'Start Video'}</span>
+          </button>
 
-            {/* Screen Share */}
+          {/* Screen Share (Host or permitted guest) */}
+          {showHostControls && (
             <button
               type="button"
               onClick={toggleScreenShare}
@@ -631,52 +778,59 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               <MonitorUp className="h-4 w-4" />
               <span className="hidden sm:inline">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
             </button>
+          )}
 
-            {/* Leave / Return to Green Room */}
-            <button
-              type="button"
-              onClick={() => {
+          {/* Leave / End Call */}
+          <button
+            type="button"
+            onClick={() => {
+              if (showHostControls) {
                 setIsMeetingStarted(false);
                 setShowProSummary(true);
-                toggleLiveStatus();
-              }}
-              className="p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30"
-            >
-              <PhoneOff className="h-4 w-4" />
-              <span className="hidden sm:inline">End Meeting</span>
-            </button>
+                if (isLive) toggleLiveStatus();
+              } else {
+                setIsGuestJoined(false);
+                setHasKnocked(false);
+              }
+            }}
+            className="p-2.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-900/30"
+          >
+            <PhoneOff className="h-4 w-4" />
+            <span className="hidden sm:inline">{showHostControls ? 'End Meeting' : 'Leave Meeting'}</span>
+          </button>
 
-            <div className="h-5 w-px bg-slate-800" />
+          <div className="h-5 w-px bg-slate-800" />
 
-            {/* Native OS Picture-in-Picture */}
-            <button
-              type="button"
-              onClick={toggleNativePiP}
-              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
-              title="Pop out video (Picture-in-Picture)"
-            >
-              <PictureInPicture2 className="h-4 w-4" />
-            </button>
+          {/* Native OS Picture-in-Picture */}
+          <button
+            type="button"
+            onClick={toggleNativePiP}
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+            title="Pop out video (Picture-in-Picture)"
+          >
+            <PictureInPicture2 className="h-4 w-4" />
+          </button>
 
-            {/* Fullscreen */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
-              title="Toggle Fullscreen"
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </button>
+          {/* Fullscreen */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+            title="Toggle Fullscreen"
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
 
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Post-Meeting Summary & Pro Upgrade Modal */}
-      <PostMeetingProModal
-        isOpen={showProSummary}
-        onClose={() => setShowProSummary(false)}
-      />
+      {showHostControls && (
+        <PostMeetingProModal
+          isOpen={showProSummary}
+          onClose={() => setShowProSummary(false)}
+        />
+      )}
     </div>
   );
 };

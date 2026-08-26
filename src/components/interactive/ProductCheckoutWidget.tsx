@@ -183,14 +183,14 @@ export const ProductCheckoutWidget: React.FC = () => {
           className="w-full py-3 px-4 rounded-xl bg-[#0084FF] hover:bg-[#0074E0] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
         >
           <CreditCard className="h-3.5 w-3.5" />
-          <span>{isProcessing ? 'Connecting Stripe Gateway...' : `Pay $${offerPrice || 19.99} with Stripe`}</span>
+          <span>{isProcessing ? 'Processing...' : `Pay Now — $${offerPrice || 19.99}`}</span>
           <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
         </button>
 
         <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
           <span className="flex items-center gap-1">
             <ShieldCheck className="h-3 w-3 text-emerald-500" />
-            <span>Stripe Encrypted Payout</span>
+            <span>Secure 256-Bit Encrypted Checkout</span>
           </span>
           {isHost && (
             <button

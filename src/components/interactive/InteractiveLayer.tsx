@@ -105,7 +105,7 @@ export const InteractiveLayer: React.FC = () => {
             }`}
           >
             <CreditCard className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Pro ($19.99)</span>
+            <span className="truncate">Live Offer</span>
           </button>
         </div>
 
