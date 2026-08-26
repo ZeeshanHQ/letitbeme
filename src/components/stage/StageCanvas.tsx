@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import {
   MessageSquare,
-  Sparkles,
   Layers,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Share2,
-  Tv,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { VideoPlayer } from './VideoPlayer';
@@ -17,22 +11,22 @@ import { AudienceReactions } from './AudienceReactions';
 import { Button } from '../common/Button';
 
 export const StageCanvas: React.FC = () => {
-  const { layoutMode, setLayoutMode, activeWidget } = useStream();
+  const { layoutMode, setLayoutMode } = useStream();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<'interactive' | 'chat'>('interactive');
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-[#FAF9F6] p-3 sm:p-5 lg:p-6 flex flex-col justify-between font-sans">
       
-      {/* Layout Content Container */}
-      <div className="max-w-[1700px] mx-auto w-full flex-1 flex flex-col">
+      {/* Ultra-Wide Premium Canvas Layout Container */}
+      <div className="max-w-[1780px] 2xl:max-w-[1900px] mx-auto w-full flex-1 flex flex-col">
         
         {/* DESKTOP VIEW (> 1024px) */}
         <div className="hidden lg:flex flex-1 gap-5 xl:gap-6 min-h-[720px]">
           
           {layoutMode === 'split' && (
             <>
-              {/* Left Pane: 60% Video Stream */}
+              {/* Left Pane: 58% Video Stream */}
               <div className="w-[58%] xl:w-[60%] flex flex-col gap-4">
                 <div className="flex-1 min-h-[500px]">
                   <VideoPlayer />
@@ -44,14 +38,14 @@ export const StageCanvas: React.FC = () => {
                     variant="glass"
                     size="sm"
                     onClick={() => setIsChatOpen(!isChatOpen)}
-                    leftIcon={<MessageSquare className="h-4 w-4 text-solar-500" />}
+                    leftIcon={<MessageSquare className="h-4 w-4 text-[#0084FF]" />}
                   >
                     {isChatOpen ? 'Hide Live Chat' : 'Show Live Chat'}
                   </Button>
                 </div>
               </div>
 
-              {/* Right Pane: 40% Interactive Widget Layer or Chat */}
+              {/* Right Pane: 42% Interactive Widget Layer or Chat */}
               <div className="w-[42%] xl:w-[40%] flex flex-col gap-4">
                 {isChatOpen ? (
                   <div className="h-full grid grid-rows-2 gap-4">
@@ -92,7 +86,7 @@ export const StageCanvas: React.FC = () => {
           )}
 
           {layoutMode === 'focus' && (
-            /* Focus Mode: Video is Fullscreen, Interactive Drawer slides from side */
+            /* Focus Mode: Video is Fullscreen */
             <div className="w-full h-[760px] flex gap-5">
               <div className="flex-1 h-full flex flex-col gap-4">
                 <div className="flex-1">
@@ -117,7 +111,7 @@ export const StageCanvas: React.FC = () => {
 
         {/* MOBILE & TABLET STACKED VIEW (< 1024px) */}
         <div className="flex lg:hidden flex-col gap-4 flex-1">
-          {/* Fixed/Prominent Top Video Player */}
+          {/* Fixed Top Video Player */}
           <div className="w-full h-[280px] sm:h-[380px] shrink-0">
             <VideoPlayer />
           </div>
@@ -127,20 +121,22 @@ export const StageCanvas: React.FC = () => {
             <AudienceReactions />
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
+                type="button"
                 onClick={() => setMobileActiveTab('interactive')}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                   mobileActiveTab === 'interactive'
-                    ? 'bg-white text-solar-600 shadow-sm'
+                    ? 'bg-white text-[#0084FF] shadow-sm'
                     : 'text-slate-600'
                 }`}
               >
                 Interactive App
               </button>
               <button
+                type="button"
                 onClick={() => setMobileActiveTab('chat')}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                   mobileActiveTab === 'chat'
-                    ? 'bg-white text-solar-600 shadow-sm'
+                    ? 'bg-white text-[#0084FF] shadow-sm'
                     : 'text-slate-600'
                 }`}
               >

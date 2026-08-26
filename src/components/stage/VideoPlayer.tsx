@@ -21,6 +21,7 @@ import {
   UserCheck,
   UserX,
   Bell,
+  RotateCcw,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -434,15 +435,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
           </span>
 
           {/* Quick Copy Meeting Link Pill */}
-          <button
-            type="button"
-            onClick={handleCopyMeetingLink}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-[#0084FF]/80 hover:bg-[#0084FF] backdrop-blur-md px-3 py-1 rounded-full border border-white/20 cursor-pointer transition-all shadow-sm"
-            title="Copy Meeting Link"
-          >
-            {linkCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
-            <span className="hidden sm:inline">{linkCopied ? 'Link Copied' : 'Copy Link'}</span>
-          </button>
+          <div className="flex items-center bg-[#0084FF]/80 backdrop-blur-md rounded-full border border-white/20 shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={handleCopyMeetingLink}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-white hover:bg-[#0084FF] px-3 py-1 cursor-pointer transition-all"
+              title="Copy Meeting Link"
+            >
+              {linkCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
+              <span className="hidden sm:inline">{linkCopied ? 'Link Copied' : 'Copy Link'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await updateProfile({
+                  customSlug: `room-${Math.random().toString(36).substring(2, 6)}`,
+                });
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              }}
+              className="p-1 px-2 text-white/80 hover:text-white hover:bg-[#0084FF] border-l border-white/20 transition-all cursor-pointer"
+              title="Rotate / Generate New Link"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

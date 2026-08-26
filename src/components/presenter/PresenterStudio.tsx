@@ -10,6 +10,7 @@ import {
   Send,
   CreditCard,
   BarChart3,
+  RotateCcw,
 } from 'lucide-react';
 import { useStream } from '../../context/StreamContext';
 import { useAuth } from '../../context/AuthContext';
@@ -22,16 +23,25 @@ import { Button } from '../common/Button';
 
 export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onOpenReferral }) => {
   const { activeWidget, setActiveWidget, isLive, title, layoutMode, setLayoutMode } = useStream();
-  const { user } = useAuth();
+  const { user, rotateMeetingSlug } = useAuth();
   const [announcementText, setAnnouncementText] = useState('');
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
 
   const streamHandle = user?.customSlug || 'live';
   const publicStreamUrl = `${window.location.origin}/?room=${streamHandle}`;
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(publicStreamUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleRotateLink = async () => {
+    setIsRotating(true);
+    await rotateMeetingSlug();
+    setIsRotating(false);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -108,7 +118,7 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
           </div>
         </div>
 
-        {/* 2. Professional Meeting Invite Link */}
+        {/* 2. Professional Meeting Invite Link with Rotate Option */}
         <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -136,9 +146,21 @@ export const PresenterStudio: React.FC<{ onOpenReferral?: () => void }> = ({ onO
                   ? 'bg-emerald-600 text-white'
                   : 'bg-[#0084FF] hover:bg-[#0074E0] text-white shadow-sm shadow-blue-500/20'
               }`}
+              title="Copy persistent link"
             >
               {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copiedLink ? 'Copied' : 'Copy Link'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRotateLink}
+              disabled={isRotating}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1 shrink-0 transition-all cursor-pointer border border-slate-200"
+              title="Rotate / Regenerate new unique meeting link"
+            >
+              <RotateCcw className={`h-3.5 w-3.5 text-slate-600 ${isRotating ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Rotate Link</span>
             </button>
 
             <a
