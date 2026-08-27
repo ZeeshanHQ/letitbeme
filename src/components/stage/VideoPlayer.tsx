@@ -71,6 +71,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
     setIsMeetingEnded,
     endMeeting,
     leaveMeeting,
+    hostMuteParticipant,
+    hostStopParticipantVideo,
+    hostRemoveParticipant,
   } = useStream();
 
   const { user, updateProfile } = useAuth();
@@ -774,6 +777,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             currentUserId={showHostControls ? 'host-1' : (localStorage.getItem('letitbeme_my_guest_id') || undefined)}
             pinnedSpeakerId={pinnedSpeakerId}
             onPinSpeaker={(id) => setPinnedSpeakerId(id === pinnedSpeakerId ? null : id)}
+            onHostMute={hostMuteParticipant}
+            onHostStopVideo={hostStopParticipantVideo}
+            onHostRemove={hostRemoveParticipant}
           />
         </div>
       )}

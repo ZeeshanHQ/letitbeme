@@ -2,6 +2,9 @@ import React from 'react';
 import {
   Mic,
   MicOff,
+  Video,
+  VideoOff,
+  UserX,
   Pin,
   Crown,
 } from 'lucide-react';
@@ -17,6 +20,9 @@ interface ParticipantGridProps {
   currentUserId?: string;
   onPinSpeaker?: (id: string) => void;
   pinnedSpeakerId?: string | null;
+  onHostMute?: (id: string) => void;
+  onHostStopVideo?: (id: string) => void;
+  onHostRemove?: (id: string) => void;
 }
 
 // Distinct, vibrant executive gradient palettes for each participant card
@@ -69,6 +75,9 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   currentUserId,
   onPinSpeaker,
   pinnedSpeakerId,
+  onHostMute,
+  onHostStopVideo,
+  onHostRemove,
 }) => {
   // Ensure at least 1 participant (host) is present
   const displayList: JoinedParticipant[] =
@@ -130,7 +139,11 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
             isActiveSpeaker={activeSpeakerId === pinnedParticipant.id}
             isPinned={true}
             theme={theme}
-            onUnpin={() => onPinSpeaker && onPinSpeaker('')}
+            showHostControls={showHostControls}
+            onPin={() => onPinSpeaker && onPinSpeaker('')}
+            onHostMute={onHostMute}
+            onHostStopVideo={onHostStopVideo}
+            onHostRemove={onHostRemove}
           />
         </div>
 
@@ -155,6 +168,10 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
                     isActiveSpeaker={activeSpeakerId === p.id}
                     isCompact={true}
                     theme={subTheme}
+                    showHostControls={showHostControls}
+                    onHostMute={onHostMute}
+                    onHostStopVideo={onHostStopVideo}
+                    onHostRemove={onHostRemove}
                   />
                 </div>
               );
@@ -191,7 +208,11 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
                 remoteStreams={remoteStreams}
                 isActiveSpeaker={isSpeaker}
                 theme={theme}
+                showHostControls={showHostControls}
                 onPin={() => onPinSpeaker && onPinSpeaker(participant.id)}
+                onHostMute={onHostMute}
+                onHostStopVideo={onHostStopVideo}
+                onHostRemove={onHostRemove}
               />
             </div>
           );
@@ -211,8 +232,12 @@ interface SingleParticipantViewProps {
   theme: typeof CARD_PALETTES[0];
   isCompact?: boolean;
   isPinned?: boolean;
+  showHostControls?: boolean;
   onPin?: () => void;
   onUnpin?: () => void;
+  onHostMute?: (id: string) => void;
+  onHostStopVideo?: (id: string) => void;
+  onHostRemove?: (id: string) => void;
 }
 
 const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
@@ -225,8 +250,12 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   theme,
   isCompact = false,
   isPinned = false,
+  showHostControls = false,
   onPin,
   onUnpin,
+  onHostMute,
+  onHostStopVideo,
+  onHostRemove,
 }) => {
   const remoteStream = remoteStreams
     ? (remoteStreams[participant.id] || (participant.isHost ? remoteStreams['host-1'] : null))
@@ -414,6 +443,57 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
           <Pin className="h-3.5 w-3.5 fill-white" />
           <span>Unpin</span>
         </button>
+      )}
+
+      {/* 6. Host Moderation Controls (Zoom / Google Meet Standard) */}
+      {showHostControls && !participant.isHost && (
+        <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onHostMute?.(participant.id);
+            }}
+            className={`p-1.5 rounded-xl border border-white/15 backdrop-blur-md shadow-md text-white transition-all cursor-pointer ${
+              participant.isMicOn !== false
+                ? 'bg-black/70 hover:bg-rose-600'
+                : 'bg-rose-600 hover:bg-rose-700'
+            }`}
+            title={participant.isMicOn !== false ? 'Mute participant mic' : 'Unmute participant mic'}
+          >
+            {participant.isMicOn !== false ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onHostStopVideo?.(participant.id);
+            }}
+            className={`p-1.5 rounded-xl border border-white/15 backdrop-blur-md shadow-md text-white transition-all cursor-pointer ${
+              participant.isCamOn
+                ? 'bg-black/70 hover:bg-rose-600'
+                : 'bg-rose-600 hover:bg-rose-700'
+            }`}
+            title={participant.isCamOn ? 'Turn off participant video' : 'Request participant video'}
+          >
+            {participant.isCamOn ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Remove ${participant.name} from meeting?`)) {
+                onHostRemove?.(participant.id);
+              }
+            }}
+            className="p-1.5 rounded-xl bg-black/70 hover:bg-rose-600 border border-white/15 backdrop-blur-md shadow-md text-white transition-all cursor-pointer"
+            title="Remove participant from meeting"
+          >
+            <UserX className="h-3.5 w-3.5 text-rose-300 hover:text-white" />
+          </button>
+        </div>
       )}
 
     </div>

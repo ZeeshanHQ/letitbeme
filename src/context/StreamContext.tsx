@@ -174,6 +174,9 @@ interface StreamContextType extends StreamState {
   requestJoinRoom: (guestName: string) => Promise<void>;
   admitParticipant: (id: string) => void;
   denyParticipant: (id: string) => void;
+  hostMuteParticipant: (id: string) => void;
+  hostStopParticipantVideo: (id: string) => void;
+  hostRemoveParticipant: (id: string) => void;
 }
 
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
@@ -286,7 +289,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [audioLevel, setAudioLevel] = useState(65);
   const [currentLanguage, setCurrentLanguageState] = useState<SupportedLanguage>('en');
-  const [isAiTranslationActive, setIsAiTranslationActive] = useState(true);
+  const [isAiTranslationActive, setIsAiTranslationActive] = useState(false);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
 
   // Host Management Toggles
@@ -466,23 +469,50 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (signal.type === 'PEER_JOINED') {
       // Create or renegotiate peer connection
       const pc = createPeerConnection(signal.senderId, true);
-      if (pc && pc.signalingState === 'stable') {
-        pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
-          .then((offer) => pc.setLocalDescription(offer))
-          .then(() => {
-            sendWebRTCSignal({
-              type: 'OFFER',
-              senderId: myId,
-              targetId: signal.senderId,
-              data: pc.localDescription,
-              ts: Date.now(),
-            });
-          })
-          .catch(() => {});
+      if (pc) {
+        const activeStream = localCamStreamRef.current || localCamStream;
+        if (activeStream) {
+          activeStream.getTracks().forEach((track) => {
+            const senders = pc.getSenders();
+            const existingSender = senders.find((s) => s.track?.kind === track.kind);
+            if (existingSender) {
+              existingSender.replaceTrack(track);
+            } else {
+              pc.addTrack(track, activeStream);
+            }
+          });
+        }
+        if (pc.signalingState === 'stable') {
+          pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              sendWebRTCSignal({
+                type: 'OFFER',
+                senderId: myId,
+                targetId: signal.senderId,
+                data: pc.localDescription,
+                ts: Date.now(),
+              });
+            })
+            .catch(() => {});
+        }
       }
     } else if (signal.type === 'OFFER') {
       const pc = createPeerConnection(signal.senderId, false);
       if (pc) {
+        const activeStream = localCamStreamRef.current || localCamStream;
+        if (activeStream) {
+          activeStream.getTracks().forEach((track) => {
+            const senders = pc.getSenders();
+            const existingSender = senders.find((s) => s.track?.kind === track.kind);
+            if (existingSender) {
+              existingSender.replaceTrack(track);
+            } else {
+              pc.addTrack(track, activeStream);
+            }
+          });
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
         
         // Process any queued candidates
@@ -550,6 +580,45 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // Host remote moderation actions
+  const hostMuteParticipant = (id: string) => {
+    setJoinedParticipants((prev) => {
+      const updated = prev.map((p) => (p.id === id ? { ...p, isMicOn: !p.isMicOn } : p));
+      channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+      localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+      sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
+      return updated;
+    });
+
+    const signalPayload = { targetId: id, action: 'toggle_mic', ts: Date.now() };
+    channel?.postMessage({ type: 'HOST_MODERATE_PARTICIPANT', payload: signalPayload });
+    localStorage.setItem('letitbeme_host_moderate', JSON.stringify({ payload: signalPayload, ts: Date.now() }));
+    sendSupabaseBroadcast('HOST_MODERATE_PARTICIPANT', signalPayload);
+  };
+
+  const hostStopParticipantVideo = (id: string) => {
+    setJoinedParticipants((prev) => {
+      const updated = prev.map((p) => (p.id === id ? { ...p, isCamOn: !p.isCamOn } : p));
+      channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+      localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+      sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
+      return updated;
+    });
+
+    const signalPayload = { targetId: id, action: 'toggle_cam', ts: Date.now() };
+    channel?.postMessage({ type: 'HOST_MODERATE_PARTICIPANT', payload: signalPayload });
+    localStorage.setItem('letitbeme_host_moderate', JSON.stringify({ payload: signalPayload, ts: Date.now() }));
+    sendSupabaseBroadcast('HOST_MODERATE_PARTICIPANT', signalPayload);
+  };
+
+  const hostRemoveParticipant = (id: string) => {
+    handleGuestLeft(id);
+    const signalPayload = { targetId: id, action: 'remove', ts: Date.now() };
+    channel?.postMessage({ type: 'HOST_MODERATE_PARTICIPANT', payload: signalPayload });
+    localStorage.setItem('letitbeme_host_moderate', JSON.stringify({ payload: signalPayload, ts: Date.now() }));
+    sendSupabaseBroadcast('HOST_MODERATE_PARTICIPANT', signalPayload);
+  };
+
   // Synchronize across both BroadcastChannel and Supabase Realtime
   useEffect(() => {
     const bc = new BroadcastChannel('letitbeme_stream_sync');
@@ -567,11 +636,59 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (guestId === myGuestIdRef.current) {
         setIsWaitingInLobby(false);
         setIsGuestJoined(true);
-        // Announce peer joined to establish WebRTC connection with host
-        sendWebRTCSignal({
-          type: 'PEER_JOINED',
-          senderId: myGuestIdRef.current,
-          ts: Date.now(),
+
+        // By default, automatically start attendee camera & microphone so video & voice stream immediately
+        navigator.mediaDevices?.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: true,
+        }).then((stream) => {
+          setLocalCamStream(stream);
+          setIsCamOn(true);
+          setIsMicOn(true);
+          Object.values(peerConnectionsRef.current).forEach((pc) => {
+            stream.getTracks().forEach((track) => {
+              const senders = pc.getSenders();
+              const existingSender = senders.find((s) => s.track?.kind === track.kind);
+              if (existingSender) {
+                existingSender.replaceTrack(track);
+              } else {
+                pc.addTrack(track, stream);
+              }
+            });
+          });
+          setJoinedParticipants((prev) => {
+            const updated = prev.map((p) => (p.id === myGuestIdRef.current ? { ...p, isCamOn: true, isMicOn: true } : p));
+            channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+            localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+            sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
+            return updated;
+          });
+          sendWebRTCSignal({
+            type: 'PEER_JOINED',
+            senderId: myGuestIdRef.current,
+            ts: Date.now(),
+          });
+        }).catch(() => {
+          navigator.mediaDevices?.getUserMedia({ audio: true }).then((audioStream) => {
+            setLocalCamStream(audioStream);
+            setIsMicOn(true);
+            Object.values(peerConnectionsRef.current).forEach((pc) => {
+              audioStream.getTracks().forEach((track) => {
+                pc.addTrack(track, audioStream);
+              });
+            });
+            sendWebRTCSignal({
+              type: 'PEER_JOINED',
+              senderId: myGuestIdRef.current,
+              ts: Date.now(),
+            });
+          }).catch(() => {
+            sendWebRTCSignal({
+              type: 'PEER_JOINED',
+              senderId: myGuestIdRef.current,
+              ts: Date.now(),
+            });
+          });
         });
       }
       setViewerCount((prev) => prev + 1);
@@ -591,12 +708,25 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             name: resolvedName,
             avatar: guestObj?.avatar,
             isHost: false,
-            isCamOn: false,
+            isCamOn: true,
             isMicOn: true,
             isSpeaking: false,
           },
         ];
       });
+    };
+
+    const handleHostModerate = (payload: { targetId: string; action: string }) => {
+      if (payload?.targetId === myGuestIdRef.current) {
+        if (payload.action === 'toggle_mic') {
+          toggleMic();
+        } else if (payload.action === 'toggle_cam') {
+          toggleCam();
+        } else if (payload.action === 'remove') {
+          leaveMeeting();
+          alert('You have been removed from the meeting by the host.');
+        }
+      }
     };
 
     const handleDeny = (guestId: string) => {
@@ -640,6 +770,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (type === 'GUEST_LEFT') handleGuestLeft(payload.guestId);
       if (type === 'MEETING_ENDED') handleMeetingEnded();
       if (type === 'WEBRTC_SIGNAL') handleWebRTCSignal(payload);
+      if (type === 'HOST_MODERATE_PARTICIPANT') handleHostModerate(payload);
     };
 
     // Supabase Realtime WebSocket for cross-device / mobile phone synchronization
@@ -653,6 +784,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'DENY_GUEST' }, (event) => handleDeny(event.payload?.guestId))
         .on('broadcast', { event: 'GUEST_LEFT' }, (event) => handleGuestLeft(event.payload?.guestId))
         .on('broadcast', { event: 'MEETING_ENDED' }, () => handleMeetingEnded())
+        .on('broadcast', { event: 'HOST_MODERATE_PARTICIPANT' }, (event) => handleHostModerate(event.payload))
         .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
           if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
         })
@@ -699,6 +831,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (payload) {
             setMessages((prev) => (prev.some((m) => m.id === payload.id) ? prev : [...prev, payload]));
           }
+        } catch {}
+      }
+      if (e.key === 'letitbeme_host_moderate' && e.newValue) {
+        try {
+          const { payload } = JSON.parse(e.newValue);
+          if (payload) handleHostModerate(payload);
         } catch {}
       }
       if (e.key === 'letitbeme_guest_left' && e.newValue) {
@@ -1336,6 +1474,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         requestJoinRoom,
         admitParticipant,
         denyParticipant,
+        hostMuteParticipant,
+        hostStopParticipantVideo,
+        hostRemoveParticipant,
       }}
     >
       {children}
