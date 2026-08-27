@@ -1,116 +1,181 @@
 import React from 'react';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import {
+  ArrowRight,
+  ShieldCheck,
+  Video,
+  UserCheck,
+  Building2,
+  Mic,
+  Lock,
+  Sparkles,
+} from 'lucide-react';
 
 interface HeroSectionProps {
-  onEnterStage: () => void;
-  onEnterPresenter: () => void;
-  onOpenAuth?: () => void;
+  onOpenAuth: () => void;
+  onExplore: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({
-  onEnterStage,
-  onEnterPresenter,
-  onOpenAuth,
-}) => {
-  const { user } = useAuth();
-
-  const handleGetStarted = () => {
-    if (user) {
-      onEnterPresenter();
-    } else if (onOpenAuth) {
-      onOpenAuth();
-    } else {
-      onEnterPresenter();
-    }
-  };
-
+export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onExplore }) => {
   return (
-    <div className="relative w-full overflow-hidden bg-white selection:bg-[#319AFF]/20 font-['Plus_Jakarta_Sans',sans-serif] -webkit-font-smoothing-antialiased">
-      {/* Main Container: 1600px Max-Width (100% Pure Clean White Background) */}
-      <div className="relative z-10 mx-auto max-w-[1600px] px-6 sm:px-10 lg:px-16 pt-12 pb-20 sm:pt-16 sm:pb-28">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          
-          {/* Hero Left Column */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6 max-w-2xl">
+    <section className="relative pt-20 pb-28 sm:pt-28 sm:pb-36 bg-white overflow-hidden select-none">
+      <div className="max-w-[1360px] mx-auto px-6 sm:px-10">
+        {/* Main Text Content */}
+        <div className="max-w-3xl space-y-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-medium text-slate-950 tracking-[-0.03em] leading-[1.12]">
+            The private intelligent ecosystem for leaders and institutional teams.
+          </h1>
 
-            {/* Hero Headline */}
-            <h1
-              className="text-4xl sm:text-6xl lg:text-[70px] font-bold text-[#0f172a] tracking-[-2px] leading-[1.08] font-['Plus_Jakarta_Sans',sans-serif]"
+          <p className="text-base sm:text-lg font-light text-slate-600 leading-relaxed max-w-2xl">
+            Triple Motive unites verified professional identities, sovereign relationship graphs, multi-modal knowledge synthesis, and encrypted meeting infrastructure into a single cohesive interface.
+          </p>
+
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium tracking-tight shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
-              Turn live meetings into <br className="hidden sm:inline" />
-              <span className="text-[#0084FF]">instant revenue</span>
-            </h1>
+              <span>Request Access</span>
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
 
-            {/* Subheadline */}
-            <p className="text-base sm:text-[18px] text-[#64748b] font-normal tracking-[-0.5px] leading-[1.6] max-w-xl font-['Plus_Jakarta_Sans',sans-serif]">
-              The premier interactive video streaming platform with in-stream 1-click Stripe checkout, real-time collaborative whiteboards, synchronized checklists, and automated ambassador referral payouts.
-            </p>
+            <button
+              type="button"
+              onClick={onExplore}
+              className="px-5 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-medium tracking-tight transition-all cursor-pointer"
+            >
+              Explore Platform
+            </button>
+          </div>
+        </div>
 
-            {/* Actions & Primary CTA Button */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <button
-                type="button"
-                onClick={handleGetStarted}
-                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-sm sm:text-base font-semibold text-white transition-all duration-200 ease-out hover:scale-[1.02] cursor-pointer shadow-[0_10px_25px_-5px_rgba(0,132,255,0.4)]"
-                style={{
-                  backgroundColor: 'rgba(0, 132, 255, 0.95)',
-                  backdropFilter: 'blur(2px)',
-                  WebkitBackdropFilter: 'blur(2px)',
-                  borderRadius: '16px',
-                  boxShadow: 'inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 12px 24px -6px rgba(0, 132, 255, 0.35)',
-                }}
-              >
-                <span>Start Free Workspace</span>
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white transition-transform duration-200 group-hover:translate-x-0.5">
-                  <ArrowRight className="h-3.5 w-3.5" />
+        {/* Stripe-Level Product Composition (Composed of Real Triple Motive UI Elements) */}
+        <div className="mt-16 sm:mt-20 pt-8 border-t border-slate-100">
+          <div className="relative rounded-3xl bg-slate-50 border border-slate-200/80 p-4 sm:p-8 lg:p-10 shadow-sm overflow-hidden">
+            {/* Subtle architectural background grid line */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-50" />
+
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Left: Verified Member Profile Card */}
+              <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
+                      alt="Alexander Vance"
+                      className="h-12 w-12 rounded-xl object-cover border border-slate-200 shadow-sm"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-medium text-slate-900">Alexander Vance</span>
+                        <ShieldCheck className="h-3.5 w-3.5 text-blue-600" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-mono">@alex.triplemotive.net</span>
+                    </div>
+                  </div>
                 </div>
-              </button>
 
-              <button
-                type="button"
-                onClick={handleGetStarted}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-[16px] text-sm font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 transition-all cursor-pointer shadow-sm"
-              >
-                <span>Host Meeting</span>
-                <ArrowUpRight className="h-4 w-4 text-slate-400" />
-              </button>
+                <div>
+                  <span className="text-xs font-medium text-slate-800 block">Founder & CEO</span>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                    <Building2 className="h-3 w-3 text-slate-400" strokeWidth={1.5} />
+                    <span>Horizon Quantum Systems</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] text-slate-600 font-medium">
+                    Quantum Systems
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] text-slate-600 font-medium">
+                    Applied AI
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] text-slate-600 font-medium">
+                    Venture
+                  </span>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1 text-emerald-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span>Verified Node</span>
+                  </span>
+                  <span className="font-mono text-slate-400">Tenancy: Sovereign</span>
+                </div>
+              </div>
+
+              {/* Center: Permissioned Relationship Connection Node */}
+              <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-900">
+                    <UserCheck className="h-3.5 w-3.5 text-blue-600" strokeWidth={1.5} />
+                    <span>Permissioned Introduction</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                    Connected
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <img
+                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80"
+                    alt="Dr. Elena Rostova"
+                    className="h-10 w-10 rounded-xl object-cover border border-slate-200"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-medium text-slate-900 block truncate">Dr. Elena Rostova</span>
+                    <span className="text-[11px] text-slate-500 block truncate">Chief AI Scientist @ Synthetix Bio</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 text-[11px] text-slate-600 leading-relaxed italic">
+                  "Alex, great to connect. Let's sync on your quantum infrastructure roadmap."
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-1 text-slate-500 font-mono">
+                  <span>Canonical Pair Order</span>
+                  <span className="text-slate-700 font-medium">Protected Graph</span>
+                </div>
+              </div>
+
+              {/* Right: Encrypted Video Call Workspace Stage */}
+              <div className="lg:col-span-4 rounded-2xl bg-slate-900 border border-slate-800 p-5 text-white shadow-md space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-medium text-slate-200 font-mono">Room: motive-489201</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">1080p WebRTC</span>
+                </div>
+
+                <div className="aspect-video rounded-xl bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center">
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80"
+                    alt="Active Speaker Video"
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[10px] text-white flex items-center gap-1 font-medium">
+                    <span>Alexander Vance</span>
+                    <span className="text-slate-400">(Host)</span>
+                  </div>
+                  <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-emerald-500/30 border border-emerald-400 text-emerald-300 text-[10px] flex items-center gap-1 font-mono">
+                    <Mic className="h-2.5 w-2.5" strokeWidth={1.5} />
+                    <span>Speaking</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                  <span>Host Moderation: Active</span>
+                  <span className="text-emerald-400 font-mono">Encrypted Mesh</span>
+                </div>
+              </div>
+
             </div>
-
-            {/* Trust Indicators */}
-            <div className="flex items-center gap-4 pt-2 text-xs text-slate-400 font-medium">
-              <span className="flex items-center gap-1 text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Zero Downloads Required</span>
-              </span>
-              <span>•</span>
-              <span>100% WebRTC Ultra-Low Latency</span>
-              <span>•</span>
-              <span>Stripe Verified</span>
-            </div>
-
           </div>
-
-          {/* Hero Right Column: The Glassy Orb Video */}
-          <div className="lg:col-span-5 relative flex items-center justify-center min-h-[380px] lg:min-h-[520px]">
-            <div className="relative w-full max-w-[480px] lg:max-w-[540px] flex items-center justify-center">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-auto object-contain mix-blend-screen scale-110 lg:scale-125 transform pointer-events-none select-none"
-                style={{
-                  filter: 'hue-rotate(-55deg) saturate(250%) brightness(1.2) contrast(1.1)',
-                }}
-              >
-                <source src="https://future.co/images/homepage/glassy-orb/orb-purple.webm" type="video/webm" />
-              </video>
-            </div>
-          </div>
-
         </div>
       </div>
-    </div>
+    </section>
   );
 };
