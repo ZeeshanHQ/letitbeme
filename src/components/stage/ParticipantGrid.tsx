@@ -288,12 +288,6 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
                 {(participant.name || 'P').charAt(0).toUpperCase()}
               </div>
             )}
-
-            {!isCompact && (
-              <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
-                {participant.name}
-              </strong>
-            )}
           </div>
         )
       ) : (
@@ -351,12 +345,6 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
                 >
                   {(participant.name || 'P').charAt(0).toUpperCase()}
                 </div>
-              )}
-
-              {!isCompact && (
-                <strong className="text-xs sm:text-sm font-bold text-white block mt-1 tracking-tight drop-shadow-md">
-                  {participant.name}
-                </strong>
               )}
             </div>
           )}

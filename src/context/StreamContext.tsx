@@ -302,7 +302,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isMeetingEnded, setIsMeetingEnded] = useState<boolean>(false);
   const myGuestIdRef = useRef<string>(localStorage.getItem('letitbeme_my_guest_id') || `guest-${Date.now()}`);
 
-  const [localCamStream, setLocalCamStream] = useState<MediaStream | null>(null);
+  const [localCamStream, setLocalCamStreamState] = useState<MediaStream | null>(null);
+  const localCamStreamRef = useRef<MediaStream | null>(null);
+  const setLocalCamStream = (stream: MediaStream | null) => {
+    localCamStreamRef.current = stream;
+    setLocalCamStreamState(stream);
+  };
   const [localScreenStream, setLocalScreenStream] = useState<MediaStream | null>(null);
 
   const [latestSubtitle, setLatestSubtitle] = useState<SubtitleItem>({
@@ -395,10 +400,11 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       pc.addTransceiver('video', { direction: 'sendrecv' });
       pc.addTransceiver('audio', { direction: 'sendrecv' });
 
-      // Attach local stream tracks if available
-      if (localCamStream) {
-        localCamStream.getTracks().forEach((track) => {
-          pc.addTrack(track, localCamStream);
+      // Attach local stream tracks immediately if available
+      const activeStream = localCamStreamRef.current || localCamStream;
+      if (activeStream) {
+        activeStream.getTracks().forEach((track) => {
+          pc.addTrack(track, activeStream);
         });
       }
 
@@ -650,6 +656,11 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .on('broadcast', { event: 'SYNC_JOINED_PARTICIPANTS' }, (event) => {
           if (Array.isArray(event.payload)) setJoinedParticipants(event.payload);
         })
+        .on('broadcast', { event: 'SYNC_MSG' }, (event) => {
+          if (event.payload) {
+            setMessages((prev) => (prev.some((m) => m.id === event.payload.id) ? prev : [...prev, event.payload]));
+          }
+        })
         .on('broadcast', { event: 'WEBRTC_SIGNAL' }, (event) => handleWebRTCSignal(event.payload))
         .on('broadcast', { event: 'SYNC_AGENDA' }, (event) => {
           setAgendaState(event.payload);
@@ -680,6 +691,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           const { payload } = JSON.parse(e.newValue);
           if (Array.isArray(payload)) setJoinedParticipants(payload);
+        } catch {}
+      }
+      if (e.key === 'letitbeme_last_chat_msg' && e.newValue) {
+        try {
+          const { payload } = JSON.parse(e.newValue);
+          if (payload) {
+            setMessages((prev) => (prev.some((m) => m.id === payload.id) ? prev : [...prev, payload]));
+          }
         } catch {}
       }
       if (e.key === 'letitbeme_guest_left' && e.newValue) {
@@ -873,19 +892,28 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
+    const isHost = isPresenterRole || new URLSearchParams(window.location.search).get('view') === 'presenter';
+    const guestStoredName = localStorage.getItem('letitbeme_my_guest_name');
+    const senderName = isHost
+      ? (hostName || presenterName || 'Host Presenter')
+      : (guestStoredName || 'Guest Member');
+
+    const senderAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(senderName)}`;
+
     const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: isPresenterRole ? presenterName : 'Attendee',
-      avatar: isPresenterRole
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      sender: senderName,
+      avatar: senderAvatar,
       message: text.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isPresenter: isPresenterRole,
+      isPresenter: isHost,
+      badge: isHost ? 'Host' : undefined,
     };
 
     setMessages((prev) => [...prev, newMsg]);
     channel?.postMessage({ type: 'SYNC_MSG', payload: newMsg });
+    localStorage.setItem('letitbeme_last_chat_msg', JSON.stringify({ payload: newMsg, ts: Date.now() }));
+    sendSupabaseBroadcast('SYNC_MSG', newMsg);
   };
 
   const votePoll = (optionId: string) => {

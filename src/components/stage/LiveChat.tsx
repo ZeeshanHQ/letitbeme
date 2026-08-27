@@ -67,11 +67,9 @@ export const LiveChat: React.FC = () => {
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className="flex items-start gap-2.5 text-xs animate-fade-in">
-              <img
-                src={msg.avatar}
-                alt={msg.sender}
-                className="h-6 w-6 rounded-full border border-slate-200 object-cover shrink-0 mt-0.5"
-              />
+              <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-slate-200 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-sm select-none">
+                {(msg.sender || 'M').charAt(0).toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="font-semibold text-obsidian text-[11px] truncate">
