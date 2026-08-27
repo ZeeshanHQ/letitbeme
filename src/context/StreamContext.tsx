@@ -273,7 +273,14 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return DEFAULT_AGENDA;
   });
   
-  const [isPresenterRole, setIsPresenterRole] = useState(false);
+  const [isPresenterRole, setIsPresenterRole] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('view') === 'presenter' || window.location.pathname.includes('presenter');
+    } catch {
+      return false;
+    }
+  });
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -347,7 +354,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Helper to determine the exact peer ID matching joinedParticipants
   const getMyPeerId = useCallback(() => {
-    if (isPresenterRole) return 'host-1';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (isPresenterRole || params.get('view') === 'presenter' || window.location.pathname.includes('presenter')) {
+        return 'host-1';
+      }
+    } catch {}
     return myGuestIdRef.current;
   }, [isPresenterRole]);
 

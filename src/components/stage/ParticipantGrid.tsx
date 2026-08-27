@@ -14,6 +14,7 @@ interface ParticipantGridProps {
   localCamStream: MediaStream | null;
   remoteStreams?: Record<string, MediaStream>;
   showHostControls: boolean;
+  currentUserId?: string;
   onPinSpeaker?: (id: string) => void;
   pinnedSpeakerId?: string | null;
 }
@@ -65,6 +66,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   localCamStream,
   remoteStreams,
   showHostControls,
+  currentUserId,
   onPinSpeaker,
   pinnedSpeakerId,
 }) => {
@@ -74,7 +76,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
       ? participants
       : [
           {
-            id: 'host-primary',
+            id: 'host-1',
             name: 'Host Presenter',
             isHost: true,
             isCamOn: isCamOn,
@@ -95,12 +97,25 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
     return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 w-full h-full max-w-[1700px]';
   };
 
+  // Helper to determine exact self identification per card
+  const checkIsSelf = (participant: JoinedParticipant) => {
+    if (currentUserId) {
+      return participant.id === currentUserId;
+    }
+    const myStoredId = localStorage.getItem('letitbeme_my_guest_id');
+    if (showHostControls) {
+      return participant.isHost;
+    }
+    return participant.id === myStoredId;
+  };
+
   // 1. Spotlight / Pin View
   if (pinnedSpeakerId) {
     const pinnedParticipant =
       displayList.find((p) => p.id === pinnedSpeakerId) || displayList[0];
     const otherParticipants = displayList.filter((p) => p.id !== pinnedParticipant.id);
     const theme = CARD_PALETTES[0];
+    const isSelfPinned = checkIsSelf(pinnedParticipant);
 
     return (
       <div className="w-full h-full flex flex-col gap-2 sm:gap-3 p-2 sm:p-4 select-none overflow-y-auto">
@@ -108,7 +123,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
         <div className={`flex-1 relative aspect-video ${theme.bg} rounded-3xl overflow-hidden shadow-2xl border-2 ${theme.border} flex items-center justify-center`}>
           <SingleParticipantView
             participant={pinnedParticipant}
-            isSelf={pinnedParticipant.isHost ? showHostControls : !showHostControls}
+            isSelf={isSelfPinned}
             isCamOn={isCamOn}
             localCamStream={localCamStream}
             remoteStreams={remoteStreams}
@@ -124,6 +139,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-1 px-1 shrink-0 max-h-32 sm:max-h-36">
             {otherParticipants.map((p, idx) => {
               const subTheme = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length];
+              const isSelfItem = checkIsSelf(p);
               return (
                 <div
                   key={p.id}
@@ -132,7 +148,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
                 >
                   <SingleParticipantView
                     participant={p}
-                    isSelf={p.isHost ? showHostControls : !showHostControls}
+                    isSelf={isSelfItem}
                     isCamOn={isCamOn}
                     localCamStream={localCamStream}
                     remoteStreams={remoteStreams}
@@ -154,7 +170,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
       <div className={`grid ${getGridColsClass()} gap-2.5 sm:gap-4 w-full h-full items-center justify-center max-h-full`}>
         {displayList.map((participant, idx) => {
-          const isSelf = participant.isHost ? showHostControls : !showHostControls;
+          const isSelf = checkIsSelf(participant);
           const isSpeaker = activeSpeakerId === participant.id || participant.isSpeaking;
           const theme = CARD_PALETTES[idx % CARD_PALETTES.length];
 
@@ -212,9 +228,18 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
   onPin,
   onUnpin,
 }) => {
-  const remoteStream = remoteStreams ? remoteStreams[participant.id] : null;
-  const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled);
-  const hasRemoteAudio = remoteStream && remoteStream.getAudioTracks().some((t) => t.readyState === 'live' && t.enabled);
+  const remoteStream = remoteStreams
+    ? (remoteStreams[participant.id] || (participant.isHost ? remoteStreams['host-1'] : null))
+    : null;
+
+  const hasRemoteVideo =
+    (participant.isCamOn || (remoteStream && remoteStream.getVideoTracks().length > 0)) &&
+    remoteStream &&
+    remoteStream.getVideoTracks().some((t) => t.readyState === 'live');
+
+  const hasRemoteAudio =
+    remoteStream &&
+    remoteStream.getAudioTracks().length > 0;
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
@@ -274,7 +299,7 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
       ) : (
         /* 2. Remote Participant Real WebRTC Video & Audio Stream */
         <>
-          {/* Always mount dedicated audio element to guarantee remote voice audio playback across all browsers & mobile devices */}
+          {/* Dedicated audio element ensures voice audio always streams cleanly */}
           {hasRemoteAudio && (
             <audio
               ref={(el) => {
@@ -349,10 +374,25 @@ const SingleParticipantView: React.FC<SingleParticipantViewProps> = ({
         {isSelf && <span className="text-slate-400 text-[10px] font-normal">(You)</span>}
       </div>
 
-      {/* 4. Bottom-Right Mic Indicator */}
-      <div className="absolute bottom-3 right-3 z-20 p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white shadow-md">
+      {/* 4. Bottom-Right Dynamic Mic Volume & Equalizer Indicator */}
+      <div
+        className={`absolute bottom-3 right-3 z-20 px-2 py-1 rounded-full backdrop-blur-md border shadow-md flex items-center gap-1 transition-all ${
+          isActiveSpeaker
+            ? 'bg-emerald-500/25 border-emerald-400 text-emerald-400 ring-2 ring-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.4)]'
+            : 'bg-black/60 border-white/15 text-slate-300'
+        }`}
+      >
         {participant.isMicOn !== false ? (
-          <Mic className={`h-3 w-3 ${isActiveSpeaker ? 'text-emerald-400 animate-pulse' : 'text-slate-300'}`} />
+          <>
+            <Mic className={`h-3 w-3 ${isActiveSpeaker ? 'text-emerald-400 animate-pulse' : 'text-slate-300'}`} />
+            {isActiveSpeaker && (
+              <div className="flex items-center gap-0.5 ml-0.5">
+                <span className="h-1.5 w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-3 w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-0.5 bg-emerald-400 rounded-full animate-bounce" />
+              </div>
+            )}
+          </>
         ) : (
           <MicOff className="h-3 w-3 text-rose-500" />
         )}

@@ -758,6 +758,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
             localCamStream={localCamStream}
             remoteStreams={remoteStreams}
             showHostControls={showHostControls}
+            currentUserId={showHostControls ? 'host-1' : (localStorage.getItem('letitbeme_my_guest_id') || undefined)}
             pinnedSpeakerId={pinnedSpeakerId}
             onPinSpeaker={(id) => setPinnedSpeakerId(id === pinnedSpeakerId ? null : id)}
           />
@@ -776,7 +777,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-mono">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span>{showHostControls ? 'Host' : 'Attendee'}</span>
+            <span>{showHostControls ? (user?.fullName || 'Host') : (localStorage.getItem('letitbeme_my_guest_name') || guestName || 'Guest')}</span>
             <span className="text-slate-500">•</span>
             <span className="text-slate-300">@{user?.customSlug || 'live'}</span>
           </span>
