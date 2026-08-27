@@ -345,6 +345,12 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const pendingIceCandidatesRef = useRef<Record<string, RTCIceCandidateInit[]>>({});
   const supabaseRealtimeChannelRef = useRef<any>(null);
 
+  // Helper to determine the exact peer ID matching joinedParticipants
+  const getMyPeerId = useCallback(() => {
+    if (isPresenterRole) return 'host-1';
+    return myGuestIdRef.current;
+  }, [isPresenterRole]);
+
   // Helper to send Supabase Realtime broadcasts on the single active subscribed channel
   const sendSupabaseBroadcast = (event: string, payload: any) => {
     if (isSupabaseConfigured && supabaseRealtimeChannelRef.current) {
@@ -388,7 +394,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (event.candidate) {
           sendWebRTCSignal({
             type: 'ICE_CANDIDATE',
-            senderId: myGuestIdRef.current,
+            senderId: getMyPeerId(),
             targetId: targetPeerId,
             data: event.candidate,
             ts: Date.now(),
@@ -418,7 +424,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           .then(() => {
             sendWebRTCSignal({
               type: 'OFFER',
-              senderId: myGuestIdRef.current,
+              senderId: getMyPeerId(),
               targetId: targetPeerId,
               data: pc.localDescription,
               ts: Date.now(),
@@ -435,12 +441,27 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const handleWebRTCSignal = async (signal: WebRTCSignal) => {
-    const myId = myGuestIdRef.current;
+    const myId = getMyPeerId();
     if (!signal || signal.senderId === myId) return;
     if (signal.targetId && signal.targetId !== myId) return;
 
     if (signal.type === 'PEER_JOINED') {
-      createPeerConnection(signal.senderId, true);
+      // Create or renegotiate peer connection
+      const pc = createPeerConnection(signal.senderId, true);
+      if (pc && pc.signalingState === 'stable') {
+        pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+          .then((offer) => pc.setLocalDescription(offer))
+          .then(() => {
+            sendWebRTCSignal({
+              type: 'OFFER',
+              senderId: myId,
+              targetId: signal.senderId,
+              data: pc.localDescription,
+              ts: Date.now(),
+            });
+          })
+          .catch(() => {});
+      }
     } else if (signal.type === 'OFFER') {
       const pc = createPeerConnection(signal.senderId, false);
       if (pc) {
@@ -933,6 +954,21 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           localCamStream.getVideoTracks().forEach((t) => t.stop());
         }
         setIsCamOn(false);
+
+        // Sync cam state across room
+        setJoinedParticipants((prev) => {
+          const updated = prev.map((p) => (p.id === getMyPeerId() ? { ...p, isCamOn: false } : p));
+          channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+          localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+          sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
+          return updated;
+        });
+
+        sendWebRTCSignal({
+          type: 'PEER_JOINED',
+          senderId: getMyPeerId(),
+          ts: Date.now(),
+        });
       } else {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
@@ -952,6 +988,22 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               pc.addTrack(track, stream);
             }
           });
+        });
+
+        // Sync cam state across room
+        setJoinedParticipants((prev) => {
+          const updated = prev.map((p) => (p.id === getMyPeerId() ? { ...p, isCamOn: true } : p));
+          channel?.postMessage({ type: 'SYNC_JOINED_PARTICIPANTS', payload: updated });
+          localStorage.setItem('letitbeme_joined_participants', JSON.stringify({ payload: updated, ts: Date.now() }));
+          sendSupabaseBroadcast('SYNC_JOINED_PARTICIPANTS', updated);
+          return updated;
+        });
+
+        // Re-announce so remote peers renegotiate
+        sendWebRTCSignal({
+          type: 'PEER_JOINED',
+          senderId: getMyPeerId(),
+          ts: Date.now(),
         });
       }
     } catch {

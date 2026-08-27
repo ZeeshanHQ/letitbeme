@@ -89,9 +89,9 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   const getGridColsClass = () => {
     if (pinnedSpeakerId) return 'grid-cols-1 w-full h-full';
     if (totalCount === 1) return 'grid-cols-1 w-full h-full max-w-5xl';
-    if (totalCount === 2) return 'grid-cols-1 md:grid-cols-2 w-full h-full max-w-6xl';
-    if (totalCount <= 4) return 'grid-cols-1 sm:grid-cols-2 w-full h-full max-w-6xl';
-    if (totalCount <= 6) return 'grid-cols-2 lg:grid-cols-3 w-full h-full max-w-7xl';
+    if (totalCount === 2) return 'grid-cols-1 sm:grid-cols-2 w-full h-full max-w-6xl';
+    if (totalCount <= 4) return 'grid-cols-2 w-full h-full max-w-6xl';
+    if (totalCount <= 6) return 'grid-cols-2 md:grid-cols-3 w-full h-full max-w-7xl';
     return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 w-full h-full max-w-[1700px]';
   };
 
@@ -103,7 +103,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
     const theme = CARD_PALETTES[0];
 
     return (
-      <div className="w-full h-full flex flex-col gap-3 p-2 sm:p-4 select-none">
+      <div className="w-full h-full flex flex-col gap-2 sm:gap-3 p-2 sm:p-4 select-none overflow-y-auto">
         {/* Main Pinned Stage */}
         <div className={`flex-1 relative aspect-video ${theme.bg} rounded-3xl overflow-hidden shadow-2xl border-2 ${theme.border} flex items-center justify-center`}>
           <SingleParticipantView
@@ -121,14 +121,14 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
 
         {/* Filmstrip for others */}
         {otherParticipants.length > 0 && (
-          <div className="flex items-center gap-3 overflow-x-auto py-1 px-1 shrink-0 max-h-36">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-1 px-1 shrink-0 max-h-32 sm:max-h-36">
             {otherParticipants.map((p, idx) => {
               const subTheme = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length];
               return (
                 <div
                   key={p.id}
                   onClick={() => onPinSpeaker && onPinSpeaker(p.id)}
-                  className={`relative w-44 aspect-video rounded-2xl overflow-hidden ${subTheme.bg} border ${subTheme.border} shadow-md cursor-pointer hover:scale-[1.02] transition-all shrink-0 group`}
+                  className={`relative w-36 sm:w-44 aspect-video rounded-2xl overflow-hidden ${subTheme.bg} border ${subTheme.border} shadow-md cursor-pointer hover:scale-[1.02] transition-all shrink-0 group`}
                 >
                   <SingleParticipantView
                     participant={p}
@@ -151,8 +151,8 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
 
   // 2. Standard Gallery Grid View (Zoom & Google Meet Standard)
   return (
-    <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 select-none">
-      <div className={`grid ${getGridColsClass()} gap-3 sm:gap-4 w-full h-full items-center justify-center`}>
+    <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 select-none overflow-y-auto">
+      <div className={`grid ${getGridColsClass()} gap-2.5 sm:gap-4 w-full h-full items-center justify-center max-h-full`}>
         {displayList.map((participant, idx) => {
           const isSelf = participant.isHost ? showHostControls : !showHostControls;
           const isSpeaker = activeSpeakerId === participant.id || participant.isSpeaking;
@@ -161,7 +161,7 @@ export const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           return (
             <div
               key={participant.id}
-              className={`relative w-full aspect-video rounded-3xl overflow-hidden ${theme.bg} border transition-all duration-300 shadow-xl group flex items-center justify-center ${
+              className={`relative w-full aspect-video max-h-[42vh] sm:max-h-none rounded-2xl sm:rounded-3xl overflow-hidden ${theme.bg} border transition-all duration-300 shadow-xl group flex items-center justify-center ${
                 isSpeaker
                   ? theme.activeRing
                   : `${theme.border} hover:border-white/30`

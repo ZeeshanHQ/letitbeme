@@ -368,12 +368,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch((err) => console.error(err));
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch((err) => console.error(err));
-      setIsFullscreen(false);
+    try {
+      if (!document.fullscreenElement && !isFullscreen) {
+        if (containerRef.current.requestFullscreen) {
+          containerRef.current.requestFullscreen().catch(() => {});
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+        setIsFullscreen(false);
+      }
+    } catch {
+      setIsFullscreen((prev) => !prev);
     }
   };
 
@@ -695,7 +703,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[440px] bg-slate-900/60 backdrop-blur-xl rounded-3xl overflow-hidden shadow-xl border border-slate-300/40 flex flex-col justify-between select-none group font-sans"
+      className={`relative w-full h-full min-h-[380px] sm:min-h-[440px] bg-slate-900/60 backdrop-blur-xl rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-slate-300/40 flex flex-col justify-between select-none group font-sans ${
+        isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-[100dvh] rounded-none' : ''
+      }`}
     >
       {/* Hidden Canvas & Video for OS PiP & High-Fidelity 1080p Recording */}
       <canvas ref={pipCanvasRef} width={1280} height={720} className="hidden" />
