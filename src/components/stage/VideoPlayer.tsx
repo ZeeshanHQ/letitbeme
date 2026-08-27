@@ -85,8 +85,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   const [showProSummary, setShowProSummary] = useState(false);
   const [isCaptionsOpen, setIsCaptionsOpen] = useState(false);
 
-  // Guest join state
-  const [guestName, setGuestName] = useState(user?.fullName || '');
+  // Guest join state - Automatically pre-filled with logged-in account name (Google Meet / Zoom standard)
+  const [guestName, setGuestName] = useState(() => {
+    return user?.fullName || localStorage.getItem('letitbeme_my_guest_name') || '';
+  });
   const [hasKnocked, setHasKnocked] = useState(false);
 
   // Real-time editable host name and slug
@@ -97,7 +99,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
   useEffect(() => {
     if (user?.fullName) {
       setEditName(user.fullName);
-      if (!guestName) setGuestName(user.fullName);
+      setGuestName((prev) => {
+        if (!prev || prev === 'Attendee' || prev === 'Your Name') {
+          return user.fullName;
+        }
+        return prev;
+      });
     }
     if (user?.customSlug) {
       setEditSlug(user.customSlug);
@@ -520,6 +527,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ showHostControls = tru
               <p className="text-xs text-slate-500 leading-relaxed">
                 Check your camera &amp; mic before requesting entry.
               </p>
+              {user && user.fullName && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  <span className="truncate">Signed in as <strong>{user.fullName}</strong></span>
+                </div>
+              )}
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleGuestKnock(); }} className="space-y-4">
