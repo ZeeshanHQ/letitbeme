@@ -169,10 +169,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.role() = 'authenticated' THEN
-    NEW.is_verified := OLD.is_verified;
-    NEW.status := OLD.status;
-  END IF;
+  -- Strict protection: preserve OLD values for is_verified and status
+  NEW.is_verified := OLD.is_verified;
+  NEW.status := OLD.status;
   NEW.updated_at := now();
   RETURN NEW;
 END;
