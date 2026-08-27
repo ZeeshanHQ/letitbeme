@@ -828,8 +828,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Live Speech Recognition & Real-time OpenAI gpt-4o-mini Subtitle Generation
+  // Only start microphone listening when meeting is active (Host started meeting or Guest joined)
   useEffect(() => {
-    if (!isAiTranslationActive || !isMicOn) return;
+    if (!isAiTranslationActive || !isMicOn || (!isLive && !isGuestJoined)) return;
 
     let recognition: any = null;
     const SpeechRecognition =
@@ -879,7 +880,7 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch {}
       }
     };
-  }, [isAiTranslationActive, isMicOn, currentLanguage, channel]);
+  }, [isAiTranslationActive, isMicOn, isLive, isGuestJoined, currentLanguage, channel]);
 
   const triggerReaction = (emoji: string) => {
     const newReaction: FloatingReaction = {
